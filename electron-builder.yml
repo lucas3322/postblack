@@ -49,6 +49,7 @@ portable:
 
 linux:
   category: Development
+  syncDesktopName: true
   icon: icon-512.png
   target:
     - target: AppImage

@@ -1,6 +1,7 @@
 {
   "name": "postblack",
   "productName": "Postblack",
+  "desktopName": "com.postblack.app",
   "version": "0.1.0",
   "description": "A dark, local-first API client for developers.",
   "repository": {
@@ -8,7 +9,10 @@
     "url": "https://github.com/lucas3322/postblack.git"
   },
   "main": "out/main/index.js",
-  "author": "Postblack",
+  "author": {
+    "name": "Lucas Pardinho",
+    "email": "lucas3322@users.noreply.github.com"
+  },
   "license": "MIT",
   "type": "module",
   "scripts": {

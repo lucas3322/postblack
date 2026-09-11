@@ -6,7 +6,7 @@ const assets = [
   { name: 'Postblack-1.2.0-x64.dmg', browser_download_url: 'intel', size: 11 },
   { name: 'Postblack-Setup-1.2.0-x64.exe', browser_download_url: 'setup', size: 12 },
   { name: 'Postblack-Portable-1.2.0-x64.exe', browser_download_url: 'portable', size: 13 },
-  { name: 'Postblack-1.2.0-x64.AppImage', browser_download_url: 'appimage', size: 14 }
+  { name: 'Postblack-1.2.0-x86_64.AppImage', browser_download_url: 'appimage', size: 14 }
 ]
 
 describe('update logic', () => {

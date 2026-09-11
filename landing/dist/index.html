@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Postblack é um cliente HTTP desktop, local-first, feito para testar APIs sem ruído."
+    />
+    <meta name="theme-color" content="#050911" />
+    <meta property="og:title" content="Postblack — sua API, sem ruído" />
+    <meta
+      property="og:description"
+      content="Workspaces, cURL inteligente, variáveis e respostas legíveis em um cliente HTTP desktop."
+    />
+    <title>Postblack — sua API, sem ruído</title>
+    <link rel="icon" type="image/png" href="./assets/favicon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+    <header class="site-header">
+      <a class="brand" href="#topo" aria-label="Postblack, início">
+        <img src="./assets/postblack-logo.png" alt="" width="34" height="34" />
+        <span>postblack</span>
+        <small>ALPHA</small>
+      </a>
+
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav">
+        Menu
+      </button>
+
+      <nav id="site-nav" aria-label="Navegação principal">
+        <a href="#produto">Produto</a>
+        <a href="#recursos">Recursos</a>
+        <a href="#novidades">Novidades</a>
+        <a href="#download">Download</a>
+        <a class="nav-cta" data-github-link href="https://github.com/lucas3322/postblack">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="conteudo">
+      <section class="hero" id="topo">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span> Cliente HTTP desktop e local-first</div>
+          <h1>Sua API.<br /><em>Sem ruído.</em></h1>
+          <p>
+            Organize rotas, cole um cURL e envie. O Postblack transforma chamadas complexas em
+            requests claras, reutilizáveis e fáceis de entender.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#download">
+              <span>Baixar Postblack</span>
+              <span aria-hidden="true">↓</span>
+            </a>
+            <a class="button button-secondary" data-github-link href="https://github.com/lucas3322/postblack">
+              Ver código no GitHub
+            </a>
+          </div>
+          <div class="release-meta" aria-live="polite">
+            <span class="status-dot"></span>
+            <span id="hero-version">Versão 0.1.0</span>
+            <span>•</span>
+            <span>Windows, macOS e Linux</span>
+          </div>
+        </div>
+
+        <div class="product-stage" id="produto" aria-label="Prévia do Postblack">
+          <div class="stage-glow"></div>
+          <div class="app-window">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="window-brand">
+                <img src="./assets/postblack-logo.png" alt="" />
+                postblack
+              </div>
+              <div class="window-environment"><span></span> Development</div>
+            </div>
+            <div class="app-layout">
+              <aside class="mock-sidebar">
+                <div class="mock-workspace">My workspace <span>⌄</span></div>
+                <p>COLLECTIONS</p>
+                <div class="mock-collection">⌄ Backend</div>
+                <div class="mock-route active"><b>GET</b> List purchases</div>
+                <div class="mock-route"><b class="post">POST</b> Create purchase</div>
+                <div class="mock-route"><b class="patch">PATCH</b> Update status</div>
+              </aside>
+              <div class="mock-content">
+                <div class="request-bar">
+                  <strong>GET</strong>
+                  <code>{{base_url}}/api/v1/compras/list?page=1</code>
+                  <button type="button" tabindex="-1">Send</button>
+                </div>
+                <div class="mock-tabs"><b>Params</b><span>Headers <i>4</i></span><span>Body</span><span>Auth</span></div>
+                <div class="params-grid">
+                  <div><small>PARAMETER</small><code>page</code><code>1</code></div>
+                  <div><small>PARAMETER</small><code>paginate</code><code>true</code></div>
+                </div>
+                <div class="response-bar">
+                  <strong>200 OK</strong><span>184 ms</span><span>1.24 KB</span>
+                </div>
+                <pre class="json-preview" aria-label="Exemplo de resposta JSON"><code>{
+  <span class="json-key">"success"</span>: <span class="json-bool">true</span>,
+  <span class="json-key">"page"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"message"</span>: <span class="json-string">"Compras carregadas"</span>,
+  <span class="json-key">"data"</span>: [
+    { <span class="json-key">"id"</span>: <span class="json-number">1042</span>, <span class="json-key">"status"</span>: <span class="json-string">"approved"</span> }
+  ]
+}</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="trust-strip" aria-label="Princípios do produto">
+        <span>Electron + TypeScript</span>
+        <span>Dados locais</span>
+        <span>Open source</span>
+        <span>Multiplataforma</span>
+      </section>
+
+      <section class="section features" id="recursos">
+        <div class="section-heading">
+          <p>Feito para o fluxo real</p>
+          <h2>Menos configuração.<br />Mais contexto.</h2>
+          <span>O essencial de um cliente de API, organizado para você chegar à resposta mais rápido.</span>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature feature-wide">
+            <div class="feature-index">01</div>
+            <div>
+              <h3>Cole o cURL. O request aparece.</h3>
+              <p>
+                Método, URL, parâmetros e headers são reconhecidos direto na barra. Sem modal, sem
+                retrabalho.
+              </p>
+            </div>
+            <div class="curl-demo">
+              <code><span>curl</span> --location 'https://api.exemplo.dev/users?page=1' \</code>
+              <code>&nbsp;&nbsp;--header 'Authorization: Bearer {{token}}'</code>
+              <div class="transform-line"><i></i><span>Request importado</span></div>
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="feature-index">02</div>
+            <h3>Variáveis no escopo certo</h3>
+            <p>Globais para toda a aplicação, locais por workspace e específicas de cada ambiente.</p>
+            <div class="scope-list">
+              <span><i class="scope-global"></i> Global <code>{{api_key}}</code></span>
+              <span><i class="scope-workspace"></i> Workspace <code>{{customer_id}}</code></span>
+              <span><i class="scope-environment"></i> Ambiente <code>{{base_url}}</code></span>
+            </div>
+          </article>
+
+          <article class="feature">
+            <div class="feature-index">03</div>
+            <h3>JSON que você lê de verdade</h3>
+            <p>Chaves e valores ganham cores por tipo: strings, números, booleanos e nulos.</p>
+            <div class="type-row">
+              <code class="json-key">key</code><code class="json-string">"string"</code>
+              <code class="json-number">42</code><code class="json-bool">true</code>
+              <code class="json-null">null</code>
+            </div>
+          </article>
+
+          <article class="feature feature-wide local-first">
+            <div class="feature-index">04</div>
+            <div>
+              <h3>Seu trabalho fica com você</h3>
+              <p>
+                Workspaces, coleções, rotas e variáveis são persistidos localmente. Abra o app e
+                continue exatamente de onde parou.
+              </p>
+            </div>
+            <div class="local-diagram" aria-label="Fluxo local do Postblack">
+              <span>Request</span><b>→</b><span class="diagram-core">Postblack</span><b>→</b><span>Sua API</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section releases" id="novidades">
+        <div class="section-heading row-heading">
+          <div>
+            <p>Do código ao download</p>
+            <h2>O que mudou.</h2>
+          </div>
+          <a data-releases-link href="https://github.com/lucas3322/postblack/releases">Todos os releases →</a>
+        </div>
+
+        <div id="release-feed" class="release-feed" aria-live="polite" aria-busy="true">
+          <article class="release-card release-loading">
+            <span class="skeleton short"></span><span class="skeleton"></span><span class="skeleton"></span>
+          </article>
+        </div>
+        <p class="feed-status" id="feed-status">Carregando novidades do GitHub…</p>
+      </section>
+
+      <section class="section download-section" id="download">
+        <div class="download-intro">
+          <p>Escolha sua plataforma</p>
+          <h2>Baixe. Abra.<br />Envie.</h2>
+          <span id="recommended-copy">Detectando o melhor instalador para este dispositivo…</span>
+        </div>
+
+        <div class="download-grid">
+          <article class="download-card" data-platform="mac">
+            <div class="platform-mark" aria-hidden="true">⌘</div>
+            <div>
+              <h3>macOS</h3>
+              <p>Apple Silicon e Intel</p>
+            </div>
+            <a data-asset="mac-arm64" href="https://github.com/lucas3322/postblack/releases">Apple Silicon <span>↓</span></a>
+            <a data-asset="mac-x64" href="https://github.com/lucas3322/postblack/releases">Intel <span>↓</span></a>
+          </article>
+
+          <article class="download-card" data-platform="win">
+            <div class="platform-mark windows-mark" aria-hidden="true">⊞</div>
+            <div>
+              <h3>Windows</h3>
+              <p>Windows 10 ou superior</p>
+            </div>
+            <a data-asset="win-setup" href="https://github.com/lucas3322/postblack/releases">Instalador x64 <span>↓</span></a>
+            <a data-asset="win-portable" href="https://github.com/lucas3322/postblack/releases">Versão portátil <span>↓</span></a>
+          </article>
+
+          <article class="download-card" data-platform="linux">
+            <div class="platform-mark linux-mark" aria-hidden="true">◒</div>
+            <div>
+              <h3>Linux</h3>
+              <p>Distribuições x64</p>
+            </div>
+            <a data-asset="linux-appimage" href="https://github.com/lucas3322/postblack/releases">AppImage <span>↓</span></a>
+            <a data-asset="linux-deb" href="https://github.com/lucas3322/postblack/releases">Pacote .deb <span>↓</span></a>
+          </article>
+        </div>
+
+        <p class="unsigned-note">
+          Os builds alpha ainda não são assinados digitalmente. O código e cada release podem ser
+          auditados no GitHub antes da instalação.
+        </p>
+      </section>
+
+      <section class="final-cta">
+        <img src="./assets/postblack-logo.png" alt="" />
+        <div>
+          <p>Pronto para a próxima rota?</p>
+          <h2>Deixe a API falar.</h2>
+        </div>
+        <a class="button button-primary" href="#download">Baixar Postblack <span aria-hidden="true">↓</span></a>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand" href="#topo">
+        <img src="./assets/postblack-logo.png" alt="" width="30" height="30" />
+        <span>postblack</span>
+      </a>
+      <p>Cliente HTTP open source para quem constrói APIs.</p>
+      <div><a data-github-link href="https://github.com/lucas3322/postblack">GitHub</a><span>© <span id="year"></span> Postblack</span></div>
+    </footer>
+  </body>
+</html>
+
