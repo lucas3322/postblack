@@ -1,4 +1,15 @@
-import { Box, ChevronDown, Command, History, Import, Layers3, Plus, Settings2, Variable } from 'lucide-react'
+import {
+  Box,
+  ChevronDown,
+  Command,
+  History,
+  Import,
+  Layers3,
+  Plus,
+  RefreshCw,
+  Settings2,
+  Variable
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createId,
@@ -340,7 +351,8 @@ export function App(): React.JSX.Element {
           onClick={() => setManualUpdateCheck((current) => current + 1)}
           title="Verificar atualizações"
         >
-          Postblack v{appInfo?.version ?? '…'}
+          <RefreshCw size={11} />
+          Atualizações · v{appInfo?.version ?? '…'}
         </button>
         <span>
           <span className="status-dot" /> Local workspace

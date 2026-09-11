@@ -38,6 +38,8 @@ arquitetura, mostra o progresso e abre o arquivo ao concluir.
 
 A versão instalada aparece no canto inferior esquerdo. Clicar nela executa uma verificação manual.
 Enquanto os builds não forem assinados, a instalação continua sendo confirmada pelo usuário.
+No macOS, cada kit publicado inclui o DMG e o arquivo `COMO-ABRIR-POSTBLACK-NO-MAC.txt`. O
+atualizador interno também salva esse guia na pasta Downloads ao lado do instalador.
 
 ## Versionamento e releases
 

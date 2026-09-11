@@ -1,0 +1,31 @@
+POSTBLACK PARA macOS — GUIA PARA BUILDS NAO ASSINADOS
+=====================================================
+
+O Postblack ainda nao possui assinatura e notarizacao da Apple. Por isso, o
+macOS pode exibir a mensagem de que o aplicativo esta danificado, mesmo quando
+ele foi baixado do release oficial do projeto.
+
+Use estas instrucoes somente se o arquivo foi baixado de:
+https://github.com/lucas3322/postblack/releases
+
+1. Abra o arquivo DMG e arraste Postblack.app para a pasta Aplicativos.
+2. Feche a mensagem de seguranca do macOS, caso ela apareca.
+3. Abra o aplicativo Terminal.
+4. Execute exatamente este comando:
+
+   xattr -dr com.apple.quarantine "/Applications/Postblack.app"
+
+5. Abra o Postblack novamente pela pasta Aplicativos.
+
+O comando remove apenas o atributo de quarentena do Postblack. Nao execute o
+comando em pastas inteiras nem em aplicativos obtidos de fontes desconhecidas.
+
+Se o Terminal responder "Permission denied", execute somente para este app:
+
+   sudo xattr -dr com.apple.quarantine "/Applications/Postblack.app"
+
+O macOS solicitara a senha do seu usuario. Nada sera exibido enquanto voce
+digita a senha; isso e o comportamento normal do Terminal.
+
+Mais informacoes e codigo-fonte:
+https://github.com/lucas3322/postblack

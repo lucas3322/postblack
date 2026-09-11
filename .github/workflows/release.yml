@@ -65,6 +65,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create macOS kits with installation guide
+        if: matrix.platform == 'macOS'
+        run: npm run package:mac:bundles
+
       - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
@@ -75,6 +79,7 @@ jobs:
             release/*.exe
             release/*.AppImage
             release/*.deb
+            release/*.txt
           if-no-files-found: error
 
   publish:
@@ -107,3 +112,4 @@ jobs:
             artifacts/*.exe
             artifacts/*.AppImage
             artifacts/*.deb
+            artifacts/*.txt

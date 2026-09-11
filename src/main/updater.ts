@@ -1,5 +1,5 @@
 import { createWriteStream } from 'node:fs'
-import { chmod, rename, rm, stat } from 'node:fs/promises'
+import { chmod, copyFile, rename, rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
@@ -10,6 +10,7 @@ import { compareVersions, normalizeVersion, selectReleaseAsset, type ReleaseAsse
 const REPOSITORY = 'lucas3322/postblack'
 const RELEASE_API = `https://api.github.com/repos/${REPOSITORY}/releases/latest`
 const RELEASE_PAGE = `https://github.com/${REPOSITORY}/releases/latest`
+const MAC_GUIDE_FILE_NAME = 'COMO-ABRIR-POSTBLACK-NO-MAC.txt'
 
 let lastSuccessfulCheck: UpdateInfo | null = null
 
@@ -150,11 +151,20 @@ export async function downloadUpdate(onProgress: (progress: UpdateProgress) => v
 
   await rm(destination, { force: true })
   await rename(partialDestination, destination)
+  if (process.platform === 'darwin') {
+    await copyMacInstallationGuideToDownloads()
+  }
   if (process.platform === 'linux' && destination.toLowerCase().endsWith('.appimage')) {
     await chmod(destination, 0o755)
   }
   onProgress({ receivedBytes: totalBytes || receivedBytes, totalBytes })
   return destination
+}
+
+async function copyMacInstallationGuideToDownloads(): Promise<void> {
+  const source = join(process.resourcesPath, MAC_GUIDE_FILE_NAME)
+  const destination = join(app.getPath('downloads'), MAC_GUIDE_FILE_NAME)
+  await copyFile(source, destination)
 }
 
 export async function openDownloadedUpdate(path: string): Promise<void> {

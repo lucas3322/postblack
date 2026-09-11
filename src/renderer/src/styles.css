@@ -866,6 +866,9 @@ select {
 .status-version {
   height: 19px;
   padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: 0;
   border-radius: 4px;
   color: #7193bb;
@@ -996,6 +999,13 @@ select {
 }
 .update-notice .update-error {
   color: #ff8a91;
+}
+.update-notice .update-macos-guide {
+  padding: 8px 9px;
+  border: 1px solid #274766;
+  border-radius: 6px;
+  color: #9cb6d2;
+  background: #101e2d;
 }
 .spin {
   animation: spin 1s linear infinite;

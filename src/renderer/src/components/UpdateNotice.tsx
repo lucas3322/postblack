@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { UpdateInfo, UpdateProgress } from '../../../shared/domain'
 
 const DISMISSED_VERSION_KEY = 'postblack.update.dismissed-version'
+const AUTOMATIC_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
 
 interface UpdateNoticeProps {
   manualCheckToken: number
@@ -42,7 +43,11 @@ export function UpdateNotice({ manualCheckToken }: UpdateNoticeProps): React.JSX
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void check(false), 3000)
-    return () => window.clearTimeout(timeout)
+    const interval = window.setInterval(() => void check(false), AUTOMATIC_CHECK_INTERVAL_MS)
+    return () => {
+      window.clearTimeout(timeout)
+      window.clearInterval(interval)
+    }
   }, [check])
 
   useEffect(() => {
@@ -148,6 +153,12 @@ export function UpdateNotice({ manualCheckToken }: UpdateNoticeProps): React.JSX
 
           {downloadError && <p className="update-error">{downloadError}</p>}
 
+          {isMacOs() && info.status === 'available' && !downloading && !downloadError && (
+            <p className="update-macos-guide">
+              O guia para abrir builds não assinados será salvo junto do instalador.
+            </p>
+          )}
+
           <div className="update-notice-actions">
             <button className="button quiet" onClick={dismiss} disabled={downloading}>
               Agora não
@@ -165,6 +176,10 @@ export function UpdateNotice({ manualCheckToken }: UpdateNoticeProps): React.JSX
       ) : null}
     </aside>
   )
+}
+
+function isMacOs(): boolean {
+  return /mac/i.test(navigator.platform || navigator.userAgent)
 }
 
 function formatBytes(bytes: number): string {

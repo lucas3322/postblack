@@ -102,8 +102,8 @@ function renderReleases(releases, isFallback = false) {
 function assetMatches(name, key) {
   const normalized = name.toLowerCase()
   const rules = {
-    'mac-arm64': normalized.endsWith('.dmg') && normalized.includes('arm64'),
-    'mac-x64': normalized.endsWith('.dmg') && normalized.includes('x64'),
+    'mac-arm64': normalized.endsWith('-macos.zip') && normalized.includes('arm64'),
+    'mac-x64': normalized.endsWith('-macos.zip') && normalized.includes('x64'),
     'win-setup': normalized.endsWith('.exe') && normalized.includes('setup'),
     'win-portable': normalized.endsWith('.exe') && normalized.includes('portable'),
     'linux-appimage': normalized.endsWith('.appimage'),
@@ -115,8 +115,16 @@ function assetMatches(name, key) {
 function configureDownloads(release) {
   document.querySelectorAll('[data-asset]').forEach((link) => {
     const asset = release.assets?.find((candidate) => assetMatches(candidate.name, link.dataset.asset))
-    link.href = asset?.browser_download_url || release.html_url || RELEASES_URL
-    if (asset) link.setAttribute('download', '')
+    const macFallback = link.dataset.asset.startsWith('mac-')
+      ? release.assets?.find((candidate) => {
+          const name = candidate.name.toLowerCase()
+          const architecture = link.dataset.asset === 'mac-arm64' ? 'arm64' : 'x64'
+          return name.endsWith('.dmg') && name.includes(architecture)
+        })
+      : undefined
+    const selectedAsset = asset || macFallback
+    link.href = selectedAsset?.browser_download_url || release.html_url || RELEASES_URL
+    if (selectedAsset) link.setAttribute('download', '')
   })
 
   const version = (release.tag_name || 'v0.1.0').replace(/^v/, '')
@@ -186,4 +194,3 @@ configureMenu()
 highlightRecommendedPlatform()
 document.querySelector('#year').textContent = new Date().getFullYear()
 loadReleases()
-
