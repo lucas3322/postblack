@@ -12,6 +12,8 @@ files:
 extraResources:
   - from: docs/COMO-ABRIR-POSTBLACK-NO-MAC.txt
     to: COMO-ABRIR-POSTBLACK-NO-MAC.txt
+  - from: resources/icons/icon-512.png
+    to: icon-512.png
 
 asar: true
 
