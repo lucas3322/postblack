@@ -21,10 +21,11 @@ import {
   type ApiRequest,
   type AppInfo,
   type AppState,
+  type RequestExample,
   type ResponseSnapshot,
   type Workspace
 } from '../../shared/domain'
-import { scopedVariables } from '../../shared/variables'
+import { resolveVariables, scopedVariables } from '../../shared/variables'
 import { KeyValueEditor } from './components/KeyValueEditor'
 import { BrandLogo } from './components/BrandLogo'
 import { Modal } from './components/Modal'
@@ -159,6 +160,102 @@ export function App(): React.JSX.Element {
     setResponse(null)
   }
 
+  const addExample = (request: ApiRequest): void => {
+    if (!response || response.requestId !== request.id) {
+      showNotice('Send this request before adding its response as an example.')
+      return
+    }
+
+    const name = window.prompt('Example name', `${request.name} example`)?.trim()
+    if (!name) return
+
+    const example: RequestExample = {
+      id: createId('example'),
+      name,
+      response: { ...response, id: createId('response') },
+      createdAt: nowIso()
+    }
+    updateRequest({
+      ...request,
+      examples: [...request.examples, example],
+      updatedAt: nowIso()
+    })
+    showNotice(`Example "${name}" saved.`)
+  }
+
+  const copyRequest = async (request: ApiRequest): Promise<void> => {
+    const curl = await window.postblack.generateCurl({ request, variables })
+    await navigator.clipboard.writeText(curl)
+    showNotice('Request copied as cURL.')
+  }
+
+  const shareRequest = async (request: ApiRequest): Promise<void> => {
+    const curl = await window.postblack.generateCurl({ request, variables })
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: request.name, text: curl })
+        return
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+      }
+    }
+
+    await navigator.clipboard.writeText(curl)
+    showNotice('Shareable cURL copied to the clipboard.')
+  }
+
+  const copyRequestLink = async (request: ApiRequest): Promise<void> => {
+    await navigator.clipboard.writeText(requestUrlForClipboard(request, variables))
+    showNotice('Endpoint link copied to the clipboard.')
+  }
+
+  const renameRequest = (request: ApiRequest): void => {
+    const name = window.prompt('Rename request', request.name)?.trim()
+    if (!name || name === request.name) return
+    updateRequest({ ...request, name, updatedAt: nowIso() })
+  }
+
+  const duplicateRequest = (request: ApiRequest): void => {
+    if (!workspace) return
+    const names = workspace.collections.flatMap((collection) => collection.requests.map((item) => item.name))
+    const duplicate = cloneRequest(request, uniqueName(`${request.name} copy`, names))
+
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.map((collection) => {
+        const requestIndex = collection.requests.findIndex((item) => item.id === request.id)
+        if (requestIndex < 0) return collection
+        const requests = [...collection.requests]
+        requests.splice(requestIndex + 1, 0, duplicate)
+        return { ...collection, requests }
+      })
+    }))
+    setSelectedRequestId(duplicate.id)
+    setResponse(null)
+    showNotice(`Request duplicated as "${duplicate.name}".`)
+  }
+
+  const deleteRequest = (request: ApiRequest): void => {
+    if (!workspace || !window.confirm(`Delete request "${request.name}"?`)) return
+
+    const requests = workspace.collections.flatMap((collection) => collection.requests)
+    const requestIndex = requests.findIndex((item) => item.id === request.id)
+    const nextRequest = requests[requestIndex + 1] ?? requests[requestIndex - 1] ?? null
+
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.map((collection) => ({
+        ...collection,
+        requests: collection.requests.filter((item) => item.id !== request.id)
+      }))
+    }))
+    setSelectedRequestId(nextRequest?.id ?? null)
+    setResponse(null)
+    showNotice(`Request "${request.name}" deleted.`)
+  }
+
   const addWorkspace = (): void => {
     if (!state) return
     const newWorkspace = createWorkspace(
@@ -248,6 +345,31 @@ export function App(): React.JSX.Element {
     window.setTimeout(() => setNotice(null), 3500)
   }
 
+  useEffect(() => {
+    const handleRequestShortcut = (event: KeyboardEvent): void => {
+      if (!selectedRequest || isEditableTarget(event.target)) return
+
+      const key = event.key.toLowerCase()
+      const commandPressed = event.metaKey || event.ctrlKey
+      if (key === 'delete' || key === 'backspace') {
+        event.preventDefault()
+        deleteRequest(selectedRequest)
+      } else if (commandPressed && key === 'e') {
+        event.preventDefault()
+        renameRequest(selectedRequest)
+      } else if (commandPressed && key === 'c') {
+        event.preventDefault()
+        void copyRequest(selectedRequest)
+      } else if (commandPressed && key === 'd') {
+        event.preventDefault()
+        duplicateRequest(selectedRequest)
+      }
+    }
+
+    window.addEventListener('keydown', handleRequestShortcut)
+    return () => window.removeEventListener('keydown', handleRequestShortcut)
+  })
+
   if (!state || !workspace)
     return (
       <div className="app-loading">
@@ -314,11 +436,23 @@ export function App(): React.JSX.Element {
           workspace={workspace}
           selectedRequestId={selectedRequestId}
           onSelectRequest={(request) => {
+            const isAlreadySelected = request.id === selectedRequestId
             setSelectedRequestId(request.id)
-            setResponse(null)
+            if (!isAlreadySelected) setResponse(null)
+          }}
+          onSelectExample={(request, example) => {
+            setSelectedRequestId(request.id)
+            setResponse(example.response)
           }}
           onAddCollection={addCollection}
           onAddRequest={addRequest}
+          onAddExample={addExample}
+          onShareRequest={(request) => void shareRequest(request)}
+          onCopyLink={(request) => void copyRequestLink(request)}
+          onRenameRequest={renameRequest}
+          onCopyRequest={(request) => void copyRequest(request)}
+          onDuplicateRequest={duplicateRequest}
+          onDeleteRequest={deleteRequest}
           onShowHistory={() => setModal('history')}
         />
         <main className="main-pane">
@@ -632,4 +766,57 @@ function uniqueName(base: string, names: string[]): string {
   let counter = 2
   while (names.includes(`${base} ${counter}`)) counter += 1
   return `${base} ${counter}`
+}
+
+function cloneRequest(request: ApiRequest, name: string): ApiRequest {
+  const id = createId('request')
+  const timestamp = nowIso()
+  return {
+    ...request,
+    id,
+    name,
+    params: request.params.map((item) => ({ ...item, id: createId('field') })),
+    headers: request.headers.map((item) => ({ ...item, id: createId('field') })),
+    body: { ...request.body },
+    auth: { ...request.auth },
+    examples: request.examples.map((example) => ({
+      ...example,
+      id: createId('example'),
+      response: {
+        ...example.response,
+        id: createId('response'),
+        requestId: id,
+        requestName: name,
+        headers: example.response.headers.map((item) => ({ ...item, id: createId('field') }))
+      }
+    })),
+    createdAt: timestamp,
+    updatedAt: timestamp
+  }
+}
+
+function requestUrlForClipboard(request: ApiRequest, variables: Record<string, string>): string {
+  const rawUrl = resolveVariables(request.url, variables)
+  try {
+    const url = new URL(rawUrl)
+    for (const param of request.params.filter((item) => item.enabled && item.key.trim())) {
+      url.searchParams.set(resolveVariables(param.key, variables), resolveVariables(param.value, variables))
+    }
+    if (request.auth.type === 'api-key' && request.auth.apiKeyLocation === 'query') {
+      const key = resolveVariables(request.auth.apiKeyName, variables).trim()
+      if (key) url.searchParams.set(key, resolveVariables(request.auth.apiKeyValue, variables))
+    }
+    return url.toString()
+  } catch {
+    return rawUrl
+  }
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  )
 }

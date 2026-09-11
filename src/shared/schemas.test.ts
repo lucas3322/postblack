@@ -12,4 +12,17 @@ describe('state migrations', () => {
     expect(migratedState.globalVariables).toEqual([])
     expect(migratedState.workspaces).toHaveLength(1)
   })
+
+  it('adds an empty example list to requests created before examples existed', () => {
+    const currentState = createInitialState()
+    const request = currentState.workspaces[0]?.collections[0]?.requests[0]
+    expect(request).toBeDefined()
+
+    const { examples: _missingInLegacyRequest, ...legacyRequest } = request!
+    currentState.workspaces[0]!.collections[0]!.requests = [legacyRequest as typeof request]
+
+    const migratedState = appStateSchema.parse(currentState)
+
+    expect(migratedState.workspaces[0]?.collections[0]?.requests[0]?.examples).toEqual([])
+  })
 })

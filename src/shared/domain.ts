@@ -36,8 +36,16 @@ export interface ApiRequest {
   headers: KeyValue[]
   body: RequestBody
   auth: RequestAuth
+  examples: RequestExample[]
   createdAt: string
   updatedAt: string
+}
+
+export interface RequestExample {
+  id: string
+  name: string
+  response: ResponseSnapshot
+  createdAt: string
 }
 
 export interface RequestCollection {
@@ -172,6 +180,7 @@ export function createRequest(name = 'New request'): ApiRequest {
       apiKeyValue: '',
       apiKeyLocation: 'header'
     },
+    examples: [],
     createdAt: timestamp,
     updatedAt: timestamp
   }

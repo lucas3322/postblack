@@ -18,15 +18,42 @@ const authSchema = z.object({
   apiKeyLocation: z.enum(['header', 'query'])
 })
 
+const httpMethodSchema = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
+
+const responseSchema = z.object({
+  id: z.string(),
+  requestId: z.string(),
+  requestName: z.string(),
+  method: httpMethodSchema,
+  url: z.string(),
+  status: z.number(),
+  statusText: z.string(),
+  durationMs: z.number(),
+  sizeBytes: z.number(),
+  headers: z.array(keyValueSchema),
+  body: z.string(),
+  contentType: z.string(),
+  error: z.string().optional(),
+  createdAt: z.string()
+})
+
+const requestExampleSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  response: responseSchema,
+  createdAt: z.string()
+})
+
 export const requestSchema = z.object({
   id: z.string(),
   name: z.string(),
-  method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']),
+  method: httpMethodSchema,
   url: z.string(),
   params: z.array(keyValueSchema),
   headers: z.array(keyValueSchema),
   body: z.object({ mode: z.enum(['none', 'json', 'text', 'form-urlencoded']), content: z.string() }),
   auth: authSchema,
+  examples: z.array(requestExampleSchema).default([]),
   createdAt: z.string(),
   updatedAt: z.string()
 })
@@ -43,23 +70,6 @@ const workspaceSchema = z.object({
   variables: z.array(keyValueSchema),
   createdAt: z.string(),
   updatedAt: z.string()
-})
-
-const responseSchema = z.object({
-  id: z.string(),
-  requestId: z.string(),
-  requestName: z.string(),
-  method: requestSchema.shape.method,
-  url: z.string(),
-  status: z.number(),
-  statusText: z.string(),
-  durationMs: z.number(),
-  sizeBytes: z.number(),
-  headers: z.array(keyValueSchema),
-  body: z.string(),
-  contentType: z.string(),
-  error: z.string().optional(),
-  createdAt: z.string()
 })
 
 export const appStateSchema = z.object({

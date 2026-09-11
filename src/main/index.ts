@@ -66,6 +66,11 @@ function handleLoadError(window: BrowserWindow, error: unknown): void {
   if (!window.isDestroyed()) window.show()
 }
 
+if (!app.isPackaged) {
+  app.setName('Postblack Development')
+  app.setPath('userData', join(app.getPath('appData'), 'Postblack Development'))
+}
+
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 if (!hasSingleInstanceLock) {
