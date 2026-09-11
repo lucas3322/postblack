@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 — 2026-09-11
+
+- fix(electron): restore packaged app window (4678c28)
+
 ## 0.1.1 — 2026-09-11
 
 - feat(release): add macOS install guide and visible updater (e76ae02)
