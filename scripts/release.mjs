@@ -13,11 +13,13 @@ const allowDirty = args.has('--allow-dirty')
 const forcedType = ['major', 'minor', 'patch'].find((type) => args.has(`--${type}`))
 
 function runGit(parameters, options = {}) {
-  return execFileSync('git', parameters, {
+  const output = execFileSync('git', parameters, {
     cwd: root,
     encoding: 'utf8',
     stdio: options.inherit ? 'inherit' : 'pipe'
-  }).trim()
+  })
+
+  return typeof output === 'string' ? output.trim() : ''
 }
 
 function assertRepositoryIsReady() {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-09-11
+
+- feat(release): add macOS install guide and visible updater (e76ae02)
+- fix(landing): make hero responsive across desktop widths (51d7083)
+
 ## 0.1.0 — 2026-09-11
 
 - Cliente HTTP desktop em Electron, React e TypeScript.
