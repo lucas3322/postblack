@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 — 2026-09-11
+
+- feat: add request examples functionality and context menu actions (251aa29)
+
 ## 0.1.2 — 2026-09-11
 
 - fix(electron): restore packaged app window (4678c28)
