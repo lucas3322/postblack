@@ -1,0 +1,60 @@
+appId: com.postblack.app
+productName: Postblack
+
+directories:
+  buildResources: resources/icons
+  output: release
+
+files:
+  - out/**/*
+  - package.json
+
+asar: true
+
+mac:
+  category: public.app-category.developer-tools
+  icon: icon-512.png
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  artifactName: Postblack-${version}-${arch}.${ext}
+
+dmg:
+  title: Postblack ${version}
+  sign: false
+
+win:
+  icon: icon-512.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: Postblack-Setup-${version}-${arch}.${ext}
+
+portable:
+  artifactName: Postblack-Portable-${version}-${arch}.${ext}
+
+linux:
+  category: Development
+  icon: icon-512.png
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  artifactName: Postblack-${version}-${arch}.${ext}

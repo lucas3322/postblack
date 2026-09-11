@@ -1,0 +1,17 @@
+services:
+  landing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: postblack-landing:local
+    environment:
+      PORT: 8080
+    ports:
+      - '8080:8080'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:8080/health']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 3s
+    restart: unless-stopped

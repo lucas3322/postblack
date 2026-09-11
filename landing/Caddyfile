@@ -1,0 +1,36 @@
+:{$PORT:8080} {
+	encode zstd gzip
+
+	handle /health {
+		header Content-Type "application/json; charset=utf-8"
+		header Cache-Control "no-store"
+		respond `{"status":"ok","service":"postblack-landing"}` 200
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	@html path / *.html
+	header @html Cache-Control "public, max-age=0, must-revalidate"
+
+	@assets path *.css *.js *.png
+	header @assets Cache-Control "public, max-age=86400"
+
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://api.github.com; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

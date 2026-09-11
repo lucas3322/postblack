@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Check, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run check
+
+      - name: Formatting
+        run: npm run format:check
+
+      - name: Tests
+        run: npm test
+
+      - name: Landing page
+        run: npm run landing:check
+
+      - name: Landing Docker image
+        run: docker build --tag postblack-landing:ci .
+
+      - name: Build Electron sources
+        run: npm run build

@@ -1,0 +1,54 @@
+{
+  "name": "postblack",
+  "productName": "Postblack",
+  "version": "0.1.0",
+  "description": "A dark, local-first API client for developers.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lucas3322/postblack.git"
+  },
+  "main": "out/main/index.js",
+  "author": "Postblack",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "npm run check && electron-vite build",
+    "package:mac": "npm run build && electron-builder --mac --arm64 --x64 --publish never",
+    "package:win": "npm run build && electron-builder --win --x64 --publish never",
+    "package:linux": "npm run build && electron-builder --linux --x64 --publish never",
+    "release": "node scripts/release.mjs",
+    "release:dry": "node scripts/release.mjs --dry-run",
+    "release:check-tag": "node scripts/validate-release-tag.mjs",
+    "landing:check": "node scripts/validate-landing.mjs",
+    "landing:docker:build": "docker build --tag postblack-landing:local .",
+    "landing:docker:run": "docker compose up --build",
+    "preview": "electron-vite preview",
+    "check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "latest",
+    "@fontsource-variable/jetbrains-mono": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "^5.1.1",
+    "electron": "latest",
+    "electron-vite": "^5.0.0",
+    "electron-builder": "latest",
+    "prettier": "latest",
+    "typescript": "latest",
+    "vite": "^7.3.6",
+    "vitest": "latest"
+  }
+}
