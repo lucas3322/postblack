@@ -51,6 +51,7 @@ export interface RequestExample {
 export interface RequestCollection {
   id: string
   name: string
+  description: string
   requests: ApiRequest[]
   createdAt: string
 }
@@ -195,7 +196,13 @@ export function createWorkspace(name = 'My workspace'): Workspace {
     name,
     description: 'Your local API workspace',
     collections: [
-      { id: createId('collection'), name: 'Getting started', requests: [request], createdAt: timestamp }
+      {
+        id: createId('collection'),
+        name: 'Getting started',
+        description: 'Your first Postblack collection.',
+        requests: [request],
+        createdAt: timestamp
+      }
     ],
     environments: [
       {

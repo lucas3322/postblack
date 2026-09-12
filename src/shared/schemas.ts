@@ -63,7 +63,13 @@ const workspaceSchema = z.object({
   name: z.string(),
   description: z.string(),
   collections: z.array(
-    z.object({ id: z.string(), name: z.string(), requests: z.array(requestSchema), createdAt: z.string() })
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().default(''),
+      requests: z.array(requestSchema),
+      createdAt: z.string()
+    })
   ),
   environments: z.array(z.object({ id: z.string(), name: z.string(), variables: z.array(keyValueSchema) })),
   activeEnvironmentId: z.string().nullable(),

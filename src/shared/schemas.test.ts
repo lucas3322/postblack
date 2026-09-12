@@ -25,4 +25,17 @@ describe('state migrations', () => {
 
     expect(migratedState.workspaces[0]?.collections[0]?.requests[0]?.examples).toEqual([])
   })
+
+  it('adds an empty description to collections created before collection overviews existed', () => {
+    const currentState = createInitialState()
+    const collection = currentState.workspaces[0]?.collections[0]
+    expect(collection).toBeDefined()
+
+    const { description: _missingInLegacyCollection, ...legacyCollection } = collection!
+    currentState.workspaces[0]!.collections = [legacyCollection as typeof collection]
+
+    const migratedState = appStateSchema.parse(currentState)
+
+    expect(migratedState.workspaces[0]?.collections[0]?.description).toBe('')
+  })
 })
