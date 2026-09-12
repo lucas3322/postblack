@@ -137,6 +137,23 @@ select {
   font-weight: 600;
   font-size: 12px;
 }
+.workspace-edit-button {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: #7289a4;
+  background: transparent;
+}
+.workspace-edit-button:hover,
+.workspace-edit-button:focus-visible {
+  color: #bcd9fb;
+  background: #1a2c42;
+}
 .titlebar-spacer {
   flex: 1;
 }
@@ -1398,6 +1415,14 @@ select {
   display: flex;
   flex-direction: column;
   gap: 18px;
+}
+.text-input-form .field-label input {
+  width: 100%;
+}
+.workspace-settings-hint {
+  margin: 0;
+  color: #72849b;
+  font-size: 11px;
 }
 .workspace-create-form .field-label input {
   width: 100%;

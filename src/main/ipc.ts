@@ -1,4 +1,5 @@
-import { app, ipcMain } from 'electron'
+import { app, clipboard, ipcMain } from 'electron'
+import { z } from 'zod'
 import type { AppState, ExecuteRequestInput } from '../shared/domain'
 import { generateCurl, importCurl } from '../shared/curl'
 import { appStateSchema, executeRequestSchema } from '../shared/schemas'
@@ -12,6 +13,7 @@ export const IPC_CHANNELS = {
   executeRequest: 'postblack:request:execute',
   importCurl: 'postblack:curl:import',
   generateCurl: 'postblack:curl:generate',
+  copyText: 'postblack:clipboard:copy-text',
   appInfo: 'postblack:app:info',
   updateCheck: 'postblack:update:check',
   updateDownload: 'postblack:update:download',
@@ -31,6 +33,9 @@ export function registerIpcHandlers(store: JsonStateStore): void {
   ipcMain.handle(IPC_CHANNELS.generateCurl, (_event, rawInput: ExecuteRequestInput) => {
     const input = executeRequestSchema.parse(rawInput)
     return generateCurl(input.request, input.variables)
+  })
+  ipcMain.handle(IPC_CHANNELS.copyText, (_event, text: string) => {
+    clipboard.writeText(z.string().max(5_000_000).parse(text))
   })
   ipcMain.handle(IPC_CHANNELS.appInfo, () => ({
     version: app.getVersion(),

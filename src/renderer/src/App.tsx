@@ -5,6 +5,7 @@ import {
   History,
   Import,
   Layers3,
+  Pencil,
   Plus,
   RefreshCw,
   Settings2,
@@ -32,13 +33,24 @@ import { KeyValueEditor } from './components/KeyValueEditor'
 import { BrandLogo } from './components/BrandLogo'
 import { CollectionOverview } from './components/CollectionOverview'
 import { Modal } from './components/Modal'
+import { MoveCollectionModal } from './components/MoveCollectionModal'
 import { RequestEditor } from './components/RequestEditor'
 import { ResponseViewer } from './components/ResponseViewer'
 import { Sidebar } from './components/Sidebar'
+import { TextInputModal } from './components/TextInputModal'
 import { UpdateNotice } from './components/UpdateNotice'
+import { WorkspaceSettingsModal } from './components/WorkspaceSettingsModal'
 
 type SaveState = 'saved' | 'saving' | 'error'
-type ModalName = 'environment' | 'curl' | 'history' | 'workspace' | null
+type ModalName = 'environment' | 'curl' | 'history' | 'workspace' | 'workspace-settings' | null
+
+interface TextDialog {
+  title: string
+  label: string
+  initialValue: string
+  submitLabel: string
+  onSubmit: (value: string) => void
+}
 
 export function App(): React.JSX.Element {
   const [state, setState] = useState<AppState | null>(null)
@@ -48,6 +60,8 @@ export function App(): React.JSX.Element {
   const [sending, setSending] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [modal, setModal] = useState<ModalName>(null)
+  const [textDialog, setTextDialog] = useState<TextDialog | null>(null)
+  const [movingCollectionId, setMovingCollectionId] = useState<string | null>(null)
   const [curlInput, setCurlInput] = useState('')
   const [curlOutput, setCurlOutput] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
@@ -90,6 +104,7 @@ export function App(): React.JSX.Element {
   const workspace = state?.workspaces.find((item) => item.id === state.activeWorkspaceId) ?? null
   const selectedRequest = workspace ? findRequest(workspace, selectedRequestId) : null
   const selectedCollection = workspace?.collections.find((item) => item.id === selectedCollectionId) ?? null
+  const movingCollection = workspace?.collections.find((item) => item.id === movingCollectionId) ?? null
   const variables = useMemo(
     () => (workspace ? scopedVariables(state?.globalVariables ?? [], workspace) : {}),
     [state?.globalVariables, workspace]
@@ -173,31 +188,65 @@ export function App(): React.JSX.Element {
   }
 
   const renameCollection = (collection: RequestCollection): void => {
-    const name = window.prompt('Rename collection', collection.name)?.trim()
-    if (!name || name === collection.name) return
-
-    updateWorkspace((current) => ({
-      ...current,
-      updatedAt: nowIso(),
-      collections: current.collections.map((item) => (item.id === collection.id ? { ...item, name } : item))
-    }))
-    showNotice(`Collection renamed to "${name}".`)
+    setTextDialog({
+      title: 'Rename collection',
+      label: 'Collection name',
+      initialValue: collection.name,
+      submitLabel: 'Save name',
+      onSubmit: (name) => {
+        updateWorkspace((current) => ({
+          ...current,
+          updatedAt: nowIso(),
+          collections: current.collections.map((item) =>
+            item.id === collection.id ? { ...item, name } : item
+          )
+        }))
+        showNotice(`Collection renamed to "${name}".`)
+      }
+    })
   }
 
   const addFolder = (collection: RequestCollection): void => {
-    const name = window.prompt('Folder name', 'New folder')?.trim()
-    if (!name) return
-    const folder: RequestFolder = { id: createId('folder'), name, requests: [], createdAt: nowIso() }
-    updateCollection({ ...collection, folders: [...collection.folders, folder] })
-    showNotice(`Folder "${name}" created.`)
+    setTextDialog({
+      title: 'Add folder',
+      label: 'Folder name',
+      initialValue: 'New folder',
+      submitLabel: 'Create folder',
+      onSubmit: (name) => {
+        const folder: RequestFolder = { id: createId('folder'), name, requests: [], createdAt: nowIso() }
+        updateWorkspace((current) => ({
+          ...current,
+          updatedAt: nowIso(),
+          collections: current.collections.map((item) =>
+            item.id === collection.id ? { ...item, folders: [...item.folders, folder] } : item
+          )
+        }))
+        showNotice(`Folder "${name}" created.`)
+      }
+    })
   }
 
   const renameFolder = (collection: RequestCollection, folder: RequestFolder): void => {
-    const name = window.prompt('Rename folder', folder.name)?.trim()
-    if (!name || name === folder.name) return
-    updateCollection({
-      ...collection,
-      folders: collection.folders.map((item) => (item.id === folder.id ? { ...item, name } : item))
+    setTextDialog({
+      title: 'Rename folder',
+      label: 'Folder name',
+      initialValue: folder.name,
+      submitLabel: 'Save name',
+      onSubmit: (name) => {
+        updateWorkspace((current) => ({
+          ...current,
+          updatedAt: nowIso(),
+          collections: current.collections.map((item) =>
+            item.id === collection.id
+              ? {
+                  ...item,
+                  folders: item.folders.map((entry) => (entry.id === folder.id ? { ...entry, name } : entry))
+                }
+              : item
+          )
+        }))
+        showNotice(`Folder renamed to "${name}".`)
+      }
     })
   }
 
@@ -237,7 +286,7 @@ export function App(): React.JSX.Element {
   }
 
   const copyCollection = async (collection: RequestCollection): Promise<void> => {
-    await navigator.clipboard.writeText(JSON.stringify(collection, null, 2))
+    await window.postblack.clipboard.copyText(JSON.stringify(collection, null, 2))
     showNotice(`Collection "${collection.name}" copied as JSON.`)
   }
 
@@ -358,16 +407,13 @@ export function App(): React.JSX.Element {
       showNotice('Create another workspace before moving this collection.')
       return
     }
-    const destinationName = window
-      .prompt(`Move to workspace:\n${destinations.map((item) => `• ${item.name}`).join('\n')}`)
-      ?.trim()
-    const destination = destinations.find(
-      (item) => item.name.toLocaleLowerCase() === destinationName?.toLocaleLowerCase()
-    )
-    if (!destination) {
-      if (destinationName) showNotice('Workspace not found. Enter one of the listed names.')
-      return
-    }
+    setMovingCollectionId(collection.id)
+  }
+
+  const completeMoveCollection = (destinationId: string): void => {
+    if (!workspace || !movingCollection || !state) return
+    const destination = state.workspaces.find((item) => item.id === destinationId)
+    if (!destination || destination.id === workspace.id) return
 
     setState((current) =>
       current
@@ -377,11 +423,12 @@ export function App(): React.JSX.Element {
               if (item.id === workspace.id) {
                 return {
                   ...item,
-                  collections: item.collections.filter((entry) => entry.id !== collection.id)
+                  collections: item.collections.filter((entry) => entry.id !== movingCollection.id),
+                  updatedAt: nowIso()
                 }
               }
               if (item.id === destination.id) {
-                return { ...item, collections: [...item.collections, collection], updatedAt: nowIso() }
+                return { ...item, collections: [...item.collections, movingCollection], updatedAt: nowIso() }
               }
               return item
             })
@@ -391,6 +438,7 @@ export function App(): React.JSX.Element {
     setSelectedCollectionId(null)
     setSelectedRequestId(null)
     setResponse(null)
+    setMovingCollectionId(null)
     showNotice(`Collection moved to "${destination.name}".`)
   }
 
@@ -400,26 +448,32 @@ export function App(): React.JSX.Element {
       return
     }
 
-    const name = window.prompt('Example name', `${request.name} example`)?.trim()
-    if (!name) return
-
-    const example: RequestExample = {
-      id: createId('example'),
-      name,
-      response: { ...response, id: createId('response') },
-      createdAt: nowIso()
-    }
-    updateRequest({
-      ...request,
-      examples: [...request.examples, example],
-      updatedAt: nowIso()
+    const responseSnapshot = response
+    setTextDialog({
+      title: 'Add example',
+      label: 'Example name',
+      initialValue: `${request.name} example`,
+      submitLabel: 'Save example',
+      onSubmit: (name) => {
+        const example: RequestExample = {
+          id: createId('example'),
+          name,
+          response: { ...responseSnapshot, id: createId('response') },
+          createdAt: nowIso()
+        }
+        updateRequest({
+          ...request,
+          examples: [...request.examples, example],
+          updatedAt: nowIso()
+        })
+        showNotice(`Example "${name}" saved.`)
+      }
     })
-    showNotice(`Example "${name}" saved.`)
   }
 
   const copyRequest = async (request: ApiRequest): Promise<void> => {
     const curl = await window.postblack.generateCurl({ request, variables })
-    await navigator.clipboard.writeText(curl)
+    await window.postblack.clipboard.copyText(curl)
     showNotice('Request copied as cURL.')
   }
 
@@ -434,19 +488,23 @@ export function App(): React.JSX.Element {
       }
     }
 
-    await navigator.clipboard.writeText(curl)
+    await window.postblack.clipboard.copyText(curl)
     showNotice('Shareable cURL copied to the clipboard.')
   }
 
   const copyRequestLink = async (request: ApiRequest): Promise<void> => {
-    await navigator.clipboard.writeText(requestUrlForClipboard(request, variables))
+    await window.postblack.clipboard.copyText(requestUrlForClipboard(request, variables))
     showNotice('Endpoint link copied to the clipboard.')
   }
 
   const renameRequest = (request: ApiRequest): void => {
-    const name = window.prompt('Rename request', request.name)?.trim()
-    if (!name || name === request.name) return
-    updateRequest({ ...request, name, updatedAt: nowIso() })
+    setTextDialog({
+      title: 'Rename request',
+      label: 'Request name',
+      initialValue: request.name,
+      submitLabel: 'Save name',
+      onSubmit: (name) => updateRequest({ ...request, name, updatedAt: nowIso() })
+    })
   }
 
   const duplicateRequest = (request: ApiRequest): void => {
@@ -531,12 +589,13 @@ export function App(): React.JSX.Element {
   }
 
   const renameWorkspace = (): void => {
-    if (!workspace) return
-    const name = window.prompt('Rename workspace', workspace.name)?.trim()
-    if (!name || name === workspace.name) return
+    setModal('workspace-settings')
+  }
 
-    updateWorkspace((current) => ({ ...current, name, updatedAt: nowIso() }))
-    showNotice(`Workspace renamed to "${name}".`)
+  const saveWorkspaceSettings = (name: string, description: string): void => {
+    updateWorkspace((current) => ({ ...current, name, description, updatedAt: nowIso() }))
+    setModal(null)
+    showNotice(`Workspace "${name}" updated.`)
   }
 
   const switchWorkspace = (workspaceId: string): void => {
@@ -682,6 +741,14 @@ export function App(): React.JSX.Element {
             ))}
           </select>
           <ChevronDown size={13} />
+          <button
+            className="workspace-edit-button"
+            aria-label="Edit workspace"
+            title="Edit workspace name and description"
+            onClick={renameWorkspace}
+          >
+            <Pencil size={13} />
+          </button>
         </div>
         <button className="button quiet" onClick={addWorkspace}>
           <Plus size={15} /> Workspace
@@ -817,6 +884,35 @@ export function App(): React.JSX.Element {
           )}
           onCreate={createNewWorkspace}
           onClose={() => setModal(null)}
+        />
+      )}
+      {modal === 'workspace-settings' && (
+        <WorkspaceSettingsModal
+          workspace={workspace}
+          onSave={saveWorkspaceSettings}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {textDialog && (
+        <TextInputModal
+          key={`${textDialog.title}:${textDialog.initialValue}`}
+          title={textDialog.title}
+          label={textDialog.label}
+          initialValue={textDialog.initialValue}
+          submitLabel={textDialog.submitLabel}
+          onSubmit={(value) => {
+            textDialog.onSubmit(value)
+            setTextDialog(null)
+          }}
+          onClose={() => setTextDialog(null)}
+        />
+      )}
+      {movingCollection && state && (
+        <MoveCollectionModal
+          collectionName={movingCollection.name}
+          destinations={state.workspaces.filter((item) => item.id !== workspace.id)}
+          onMove={completeMoveCollection}
+          onClose={() => setMovingCollectionId(null)}
         />
       )}
       {modal === 'environment' && (
@@ -1045,7 +1141,7 @@ function CurlModal({
             <button
               className="button primary"
               onClick={() => {
-                void navigator.clipboard.writeText(output)
+                void window.postblack.clipboard.copyText(output)
                 showNotice('Copied to clipboard.')
               }}
             >

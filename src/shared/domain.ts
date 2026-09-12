@@ -147,6 +147,9 @@ export interface PostblackApi {
   executeRequest: (input: ExecuteRequestInput) => Promise<ResponseSnapshot>
   importCurl: (command: string) => Promise<ImportedCurl>
   generateCurl: (input: ExecuteRequestInput) => Promise<string>
+  clipboard: {
+    copyText: (text: string) => Promise<void>
+  }
   app: {
     info: () => Promise<AppInfo>
   }

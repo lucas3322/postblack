@@ -7,8 +7,10 @@ import { appStateSchema } from '../shared/schemas'
 
 export class JsonStateStore {
   private readonly filePath = join(app.getPath('userData'), 'postblack-state.json')
+  private pendingWrite: Promise<void> = Promise.resolve()
 
   async load(): Promise<AppState> {
+    await this.pendingWrite.catch(() => undefined)
     try {
       const contents = await readFile(this.filePath, 'utf8')
       return appStateSchema.parse(JSON.parse(contents))
@@ -21,9 +23,15 @@ export class JsonStateStore {
 
   async save(state: AppState): Promise<void> {
     const validState = appStateSchema.parse(state)
+    const previousWrite = this.pendingWrite.catch(() => undefined)
+    this.pendingWrite = previousWrite.then(() => this.write(validState))
+    return this.pendingWrite
+  }
+
+  private async write(state: AppState): Promise<void> {
     await mkdir(dirname(this.filePath), { recursive: true })
     const temporaryPath = `${this.filePath}.tmp`
-    await writeFile(temporaryPath, JSON.stringify(validState, null, 2), { encoding: 'utf8', mode: 0o600 })
+    await writeFile(temporaryPath, JSON.stringify(state, null, 2), { encoding: 'utf8', mode: 0o600 })
     await rename(temporaryPath, this.filePath)
   }
 }

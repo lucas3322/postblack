@@ -7,6 +7,7 @@ const channels = {
   executeRequest: 'postblack:request:execute',
   importCurl: 'postblack:curl:import',
   generateCurl: 'postblack:curl:generate',
+  copyText: 'postblack:clipboard:copy-text',
   appInfo: 'postblack:app:info',
   updateCheck: 'postblack:update:check',
   updateDownload: 'postblack:update:download',
@@ -20,6 +21,9 @@ const api: PostblackApi = {
   executeRequest: (input: ExecuteRequestInput) => ipcRenderer.invoke(channels.executeRequest, input),
   importCurl: (command: string) => ipcRenderer.invoke(channels.importCurl, command),
   generateCurl: (input: ExecuteRequestInput) => ipcRenderer.invoke(channels.generateCurl, input),
+  clipboard: {
+    copyText: (text: string) => ipcRenderer.invoke(channels.copyText, text)
+  },
   app: {
     info: () => ipcRenderer.invoke(channels.appInfo)
   },
