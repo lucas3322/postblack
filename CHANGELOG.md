@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 — 2026-09-12
+
+- feat: implementar visualização e cópia de respostas JSON grandes com suporte a pesquisa (505e8d6)
+
 ## 0.5.0 — 2026-09-12
 
 - feat: adicionar funcionalidade de redimensionamento da área de requisições com um divisor (c4b9204)
