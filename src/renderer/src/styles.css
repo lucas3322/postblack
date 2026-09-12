@@ -998,6 +998,75 @@ select {
   align-items: flex-start;
   gap: 14px;
   max-width: 760px;
+  width: 100%;
+}
+.bearer-fields {
+  width: 100%;
+  min-width: 0;
+}
+.bearer-input {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: #09101a;
+}
+.bearer-input:focus-within {
+  border-color: var(--blue);
+}
+.bearer-input input {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font:
+    12px 'JetBrains Mono Variable',
+    ui-monospace,
+    monospace;
+}
+.bearer-input .icon-button {
+  flex: none;
+  margin-right: 6px;
+}
+.bearer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.bearer-tools select {
+  max-width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text);
+  background: #09101a;
+}
+.bearer-tools .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 0;
+  color: var(--blue);
+  background: none;
+  cursor: pointer;
+}
+.bearer-help {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.bearer-help.warning {
+  color: #ffba70;
 }
 .form-grid {
   width: 100%;

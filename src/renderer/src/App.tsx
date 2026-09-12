@@ -841,10 +841,16 @@ export function App(): React.JSX.Element {
                 request={selectedRequest}
                 sending={sending}
                 saveState={saveState}
+                variableNames={Object.keys(variables).sort((a, b) => a.localeCompare(b))}
+                activeEnvironmentName={
+                  workspace.environments.find((item) => item.id === workspace.activeEnvironmentId)?.name ??
+                  null
+                }
                 onChange={updateRequest}
                 onSend={() => void sendRequest()}
                 onOpenCurl={() => void openCurl()}
                 onImportCurl={importCurlIntoCurrentRequest}
+                onOpenVariables={() => setModal('environment')}
               />
               <ResponseViewer response={response} sending={sending} />
             </>
@@ -1050,6 +1056,11 @@ function EnvironmentModal({
   }
   return (
     <Modal title="Variables & environments" onClose={onClose} wide>
+      <p className="muted">
+        To use a token, add a variable named <code>access_token</code> (without braces) and put the real token
+        in Value. Then enter <code>{'{{access_token}}'}</code> in the request Auth tab. An active environment
+        takes precedence over workspace and global variables.
+      </p>
       <div className="environment-toolbar">
         <label className="field-label">
           Active environment

@@ -6,7 +6,7 @@ import {
   type ExecuteRequestInput,
   type ResponseSnapshot
 } from '../shared/domain'
-import { resolveVariables } from '../shared/variables'
+import { findUnresolvedVariables, resolveVariables } from '../shared/variables'
 
 const REQUEST_TIMEOUT_MS = 30_000
 
@@ -96,8 +96,17 @@ function buildHeaders(
   for (const row of rows.filter((item) => item.enabled && item.key.trim())) {
     headers.set(resolveVariables(row.key, variables), resolveVariables(row.value, variables))
   }
-  if (auth.type === 'bearer' && auth.token)
-    headers.set('Authorization', `Bearer ${resolveVariables(auth.token, variables)}`)
+  if (auth.type === 'bearer' && auth.token) {
+    const token = resolveVariables(auth.token, variables).trim()
+    const unresolved = findUnresolvedVariables(token)
+    if (unresolved.length) {
+      throw new Error(
+        `Bearer token variable ${unresolved.map((name) => `{{${name}}}`).join(', ')} not found. Check the active environment, workspace or global variables.`
+      )
+    }
+    if (!token) throw new Error('Bearer token is empty. Set a value for the selected variable.')
+    headers.set('Authorization', `Bearer ${token}`)
+  }
   if (auth.type === 'basic') {
     const credentials = `${resolveVariables(auth.username, variables)}:${resolveVariables(auth.password, variables)}`
     headers.set('Authorization', `Basic ${Buffer.from(credentials).toString('base64')}`)

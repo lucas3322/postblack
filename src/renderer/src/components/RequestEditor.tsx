@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Code2, Send } from 'lucide-react'
+import { Check, ChevronDown, Code2, Eye, EyeOff, Send, Variable } from 'lucide-react'
 import { useState } from 'react'
 import { isCurlCommand } from '../../../shared/curl'
 import { HTTP_METHODS, type ApiRequest, type RequestAuth } from '../../../shared/domain'
@@ -10,20 +10,26 @@ interface RequestEditorProps {
   request: ApiRequest
   sending: boolean
   saveState: 'saved' | 'saving' | 'error'
+  variableNames: string[]
+  activeEnvironmentName: string | null
   onChange: (request: ApiRequest) => void
   onSend: () => void
   onOpenCurl: () => void
   onImportCurl: (command: string) => Promise<void>
+  onOpenVariables: () => void
 }
 
 export function RequestEditor({
   request,
   sending,
   saveState,
+  variableNames,
+  activeEnvironmentName,
   onChange,
   onSend,
   onOpenCurl,
-  onImportCurl
+  onImportCurl,
+  onOpenVariables
 }: RequestEditorProps): React.JSX.Element {
   const [tab, setTab] = useState<RequestTab>('params')
   const [importingCurl, setImportingCurl] = useState(false)
@@ -118,7 +124,16 @@ export function RequestEditor({
           />
         )}
         {tab === 'body' && <BodyEditor request={request} onChange={patch} />}
-        {tab === 'auth' && <AuthEditor auth={request.auth} onChange={(auth) => patch({ auth })} />}
+        {tab === 'auth' && (
+          <AuthEditor
+            key={request.id}
+            auth={request.auth}
+            variableNames={variableNames}
+            activeEnvironmentName={activeEnvironmentName}
+            onOpenVariables={onOpenVariables}
+            onChange={(auth) => patch({ auth })}
+          />
+        )}
       </div>
     </section>
   )
@@ -179,12 +194,21 @@ function BodyEditor({
 
 function AuthEditor({
   auth,
+  variableNames,
+  activeEnvironmentName,
+  onOpenVariables,
   onChange
 }: {
   auth: RequestAuth
+  variableNames: string[]
+  activeEnvironmentName: string | null
+  onOpenVariables: () => void
   onChange: (auth: RequestAuth) => void
 }): React.JSX.Element {
+  const [showToken, setShowToken] = useState(false)
   const patch = (changes: Partial<RequestAuth>): void => onChange({ ...auth, ...changes })
+  const variableReference = /^\{\{\s*([^{}\s]+)\s*\}\}$/.exec(auth.token.trim())
+  const missingVariable = variableReference && !variableNames.includes(variableReference[1])
   return (
     <div className="auth-editor">
       <label className="field-label">
@@ -201,15 +225,53 @@ function AuthEditor({
       </label>
       {auth.type === 'none' && <p className="muted">This request will not add an authorization value.</p>}
       {auth.type === 'bearer' && (
-        <label className="field-label">
-          Token
-          <input
-            type="password"
-            value={auth.token}
-            onChange={(event) => patch({ token: event.target.value })}
-            placeholder="{{access_token}}"
-          />
-        </label>
+        <div className="bearer-fields">
+          <label className="field-label" htmlFor="bearer-token">
+            Token
+          </label>
+          <div className="bearer-input">
+            <input
+              id="bearer-token"
+              type={showToken || auth.token.trimStart().startsWith('{{') ? 'text' : 'password'}
+              value={auth.token}
+              onChange={(event) => patch({ token: event.target.value })}
+              placeholder="{{access_token}} or paste a token"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <button
+              type="button"
+              className="icon-button"
+              onClick={() => setShowToken((current) => !current)}
+              title={showToken ? 'Hide token' : 'Show token'}
+              aria-label={showToken ? 'Hide token' : 'Show token'}
+            >
+              {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          <div className="bearer-tools">
+            <select
+              aria-label="Use an existing variable for the token"
+              value=""
+              onChange={(event) => patch({ token: `{{${event.target.value}}}` })}
+            >
+              <option value="" disabled>
+                Use a variable…
+              </option>
+              {variableNames.map((name) => (
+                <option key={name} value={name}>{`{{${name}}}`}</option>
+              ))}
+            </select>
+            <button type="button" className="text-button" onClick={onOpenVariables}>
+              <Variable size={14} /> Manage variables
+            </button>
+          </div>
+          <p className={missingVariable ? 'bearer-help warning' : 'bearer-help'}>
+            {missingVariable
+              ? `Variable ${variableReference[1]} not found. Create it or select the correct environment.`
+              : `Use {{access_token}} here; the value comes from the active environment (${activeEnvironmentName ?? 'none'}), workspace or global variables. Do not include “Bearer”.`}
+          </p>
+        </div>
       )}
       {auth.type === 'basic' && (
         <div className="form-grid">

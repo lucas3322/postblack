@@ -55,4 +55,17 @@ describe('HTTP executor', () => {
     expect(body.authorization).toBe('Bearer secret-token')
     expect(body.body).toBe('{"name":"Postblack"}')
   })
+
+  it('does not send an unresolved or empty bearer variable', async () => {
+    const request = createRequest('Protected resource')
+    request.url = `${baseUrl}/protected`
+    request.auth = { ...request.auth, type: 'bearer', token: '{{access_token}}' }
+
+    await expect(executeHttpRequest({ request, variables: {} })).rejects.toThrow(
+      'Bearer token variable {{access_token}} not found'
+    )
+    await expect(executeHttpRequest({ request, variables: { access_token: '' } })).rejects.toThrow(
+      'Bearer token is empty'
+    )
+  })
 })
