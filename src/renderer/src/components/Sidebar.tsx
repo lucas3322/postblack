@@ -24,6 +24,7 @@ interface SidebarProps {
   onSelectRequest: (request: ApiRequest) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onAddCollection: () => void
+  onRenameCollection: (collection: RequestCollection) => void
   onAddRequest: (collectionId: string) => void
   onAddExample: (request: ApiRequest) => void
   onShareRequest: (request: ApiRequest) => void
@@ -47,6 +48,7 @@ export function Sidebar({
   onSelectRequest,
   onSelectExample,
   onAddCollection,
+  onRenameCollection,
   onAddRequest,
   onAddExample,
   onShareRequest,
@@ -127,6 +129,7 @@ export function Sidebar({
             onSelectRequest={onSelectRequest}
             onSelectExample={onSelectExample}
             onAddRequest={onAddRequest}
+            onRenameCollection={onRenameCollection}
             onOpenRequestMenu={openRequestMenu}
           />
         ))}
@@ -200,6 +203,7 @@ function CollectionNode({
   onSelectRequest,
   onSelectExample,
   onAddRequest,
+  onRenameCollection,
   onOpenRequestMenu
 }: {
   collection: RequestCollection
@@ -208,12 +212,17 @@ function CollectionNode({
   onSelectRequest: (request: ApiRequest) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onAddRequest: (collectionId: string) => void
+  onRenameCollection: (collection: RequestCollection) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
 }): React.JSX.Element {
   const [open, setOpen] = useState(true)
   return (
     <div className="collection-node">
-      <div className="collection-row">
+      <div
+        className="collection-row"
+        onDoubleClick={() => onRenameCollection(collection)}
+        title="Double-click to rename collection"
+      >
         <button className="tree-toggle" onClick={() => setOpen(!open)}>
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <FolderClosed size={15} />
@@ -222,7 +231,15 @@ function CollectionNode({
         <button className="icon-button" title="Add request" onClick={() => onAddRequest(collection.id)}>
           <Plus size={14} />
         </button>
-        <button className="icon-button ghost" aria-label={`Actions for ${collection.name}`}>
+        <button
+          className="icon-button ghost"
+          aria-label={`Rename ${collection.name}`}
+          title="Rename collection"
+          onClick={(event) => {
+            event.stopPropagation()
+            onRenameCollection(collection)
+          }}
+        >
           <MoreHorizontal size={14} />
         </button>
       </div>

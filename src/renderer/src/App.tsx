@@ -21,6 +21,7 @@ import {
   type ApiRequest,
   type AppInfo,
   type AppState,
+  type RequestCollection,
   type RequestExample,
   type ResponseSnapshot,
   type Workspace
@@ -144,6 +145,18 @@ export function App(): React.JSX.Element {
         { id: createId('collection'), name, requests: [], createdAt: nowIso() }
       ]
     }))
+  }
+
+  const renameCollection = (collection: RequestCollection): void => {
+    const name = window.prompt('Rename collection', collection.name)?.trim()
+    if (!name || name === collection.name) return
+
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.map((item) => (item.id === collection.id ? { ...item, name } : item))
+    }))
+    showNotice(`Collection renamed to "${name}".`)
   }
 
   const addRequest = (collectionId: string): void => {
@@ -272,6 +285,15 @@ export function App(): React.JSX.Element {
     setSelectedRequestId(firstRequestInWorkspace(newWorkspace)?.id ?? null)
   }
 
+  const renameWorkspace = (): void => {
+    if (!workspace) return
+    const name = window.prompt('Rename workspace', workspace.name)?.trim()
+    if (!name || name === workspace.name) return
+
+    updateWorkspace((current) => ({ ...current, name, updatedAt: nowIso() }))
+    showNotice(`Workspace renamed to "${name}".`)
+  }
+
   const switchWorkspace = (workspaceId: string): void => {
     if (!state) return
     const next = state.workspaces.find((item) => item.id === workspaceId)
@@ -390,7 +412,11 @@ export function App(): React.JSX.Element {
           <span>postblack</span>
           <span className="version">alpha</span>
         </div>
-        <div className="workspace-switcher">
+        <div
+          className="workspace-switcher"
+          onDoubleClick={renameWorkspace}
+          title="Double-click to rename workspace"
+        >
           <Layers3 size={15} />
           <select value={workspace.id} onChange={(event) => switchWorkspace(event.target.value)}>
             {state.workspaces.map((item) => (
@@ -445,6 +471,7 @@ export function App(): React.JSX.Element {
             setResponse(example.response)
           }}
           onAddCollection={addCollection}
+          onRenameCollection={renameCollection}
           onAddRequest={addRequest}
           onAddExample={addExample}
           onShareRequest={(request) => void shareRequest(request)}
