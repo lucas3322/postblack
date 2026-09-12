@@ -2,6 +2,7 @@ import { Check, ChevronDown, Code2, Eye, EyeOff, Save, Send, Variable } from 'lu
 import { useState } from 'react'
 import { isCurlCommand } from '../../../shared/curl'
 import { HTTP_METHODS, type ApiRequest, type RequestAuth } from '../../../shared/domain'
+import { JsonBodyEditor } from './JsonBodyEditor'
 import { KeyValueEditor } from './KeyValueEditor'
 
 type RequestTab = 'params' | 'headers' | 'body' | 'auth'
@@ -192,12 +193,18 @@ function BodyEditor({
           </label>
         ))}
       </div>
-      {request.body.mode !== 'none' && (
+      {request.body.mode === 'json' && (
+        <JsonBodyEditor
+          value={request.body.content}
+          onChange={(content) => onChange({ body: { ...request.body, content } })}
+        />
+      )}
+      {request.body.mode !== 'none' && request.body.mode !== 'json' && (
         <textarea
           className="code body-textarea"
           value={request.body.content}
           onChange={(event) => onChange({ body: { ...request.body, content: event.target.value } })}
-          placeholder={request.body.mode === 'json' ? '{\n  "name": "Postblack"\n}' : 'Request body'}
+          placeholder="Request body"
           spellCheck={false}
         />
       )}

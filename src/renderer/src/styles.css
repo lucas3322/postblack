@@ -1088,6 +1088,59 @@ select {
   font-size: 11px;
   line-height: 1.65;
 }
+.json-body-editor {
+  position: relative;
+  flex: 1;
+  min-height: 110px;
+  border-radius: 7px;
+  background: #080e16;
+}
+.json-body-editor .body-textarea,
+.json-body-highlight {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 12px;
+  font-size: 11px;
+  line-height: 1.65;
+  tab-size: 8;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  scrollbar-gutter: stable;
+}
+.json-body-highlight {
+  overflow: auto;
+  border: 1px solid transparent;
+  pointer-events: none;
+}
+.json-body-highlight::-webkit-scrollbar {
+  display: none;
+}
+.json-body-editor .json-body-input {
+  z-index: 1;
+  color: transparent;
+  background: transparent;
+  caret-color: #dce6f5;
+}
+.json-body-input::placeholder {
+  color: #63758c;
+}
+.json-body-input::selection {
+  color: transparent;
+  background: rgba(47, 140, 255, 0.35);
+}
+.json-body-size-hint {
+  position: absolute;
+  right: 20px;
+  bottom: 8px;
+  color: #758ba5;
+  background: #080e16;
+  font-size: 9px;
+  pointer-events: none;
+}
 .field-label {
   display: flex;
   flex-direction: column;
