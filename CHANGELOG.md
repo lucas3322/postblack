@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 — 2026-09-12
+
+- feat: adicionar funcionalidade de copiar texto para a área de transferência e melhorar o gerenciamento de estado das coleções (54817ae)
+- feat: add modais para mover coleções e editar configurações de workspace (d579db8)
+
 ## 0.3.0 — 2026-09-12
 
 - feat: add CollectionOverview component and integrate folder functionality in Sidebar (b4dcd4f)
