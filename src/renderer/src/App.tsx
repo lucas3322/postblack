@@ -35,12 +35,20 @@ import { CollectionOverview } from './components/CollectionOverview'
 import { Modal } from './components/Modal'
 import { MoveCollectionModal } from './components/MoveCollectionModal'
 import { RequestEditor } from './components/RequestEditor'
+import { RequestPaneSplitter } from './components/RequestPaneSplitter'
 import { RequestTabBar } from './components/RequestTabBar'
 import { ResponseViewer } from './components/ResponseViewer'
 import { Sidebar } from './components/Sidebar'
 import { TextInputModal } from './components/TextInputModal'
 import { UpdateNotice } from './components/UpdateNotice'
 import { WorkspaceSettingsModal } from './components/WorkspaceSettingsModal'
+import {
+  availablePaneHeight,
+  clampRequestPaneHeight,
+  DEFAULT_REQUEST_PANE_RATIO,
+  REQUEST_TAB_BAR_HEIGHT,
+  requestPaneBounds
+} from './lib/request-pane-size'
 import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
 
 type SaveState = 'saved' | 'saving' | 'error'
@@ -72,8 +80,31 @@ export function App(): React.JSX.Element {
   const [notice, setNotice] = useState<string | null>(null)
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [manualUpdateCheck, setManualUpdateCheck] = useState(0)
+  const [requestPaneRatio, setRequestPaneRatio] = useState(readRequestPaneRatio)
+  const [mainPaneHeight, setMainPaneHeight] = useState(0)
   const hydrated = useRef(false)
   const immediateSave = useRef(false)
+  const mainPaneRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const element = mainPaneRef.current
+    if (!element) return
+    const observer = new ResizeObserver(() => setMainPaneHeight(element.clientHeight))
+    observer.observe(element)
+    setMainPaneHeight(element.clientHeight)
+    return () => observer.disconnect()
+  }, [state !== null])
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem('postblack:request-pane-ratio', String(requestPaneRatio))
+      } catch {
+        // The divider remains usable if local storage is unavailable.
+      }
+    }, 150)
+    return () => window.clearTimeout(timeout)
+  }, [requestPaneRatio])
 
   useEffect(() => {
     void window.postblack.app.info().then(setAppInfo)
@@ -122,6 +153,21 @@ export function App(): React.JSX.Element {
   const workspaceTabs = openTabs.filter(
     (tab) => tab.workspaceId === workspace?.id && workspace && findRequest(workspace, tab.requestId)
   )
+  const hasRequestTabs = workspaceTabs.length > 0
+  const availableHeight = availablePaneHeight(mainPaneHeight, hasRequestTabs)
+  const requestPaneHeight = clampRequestPaneHeight(availableHeight, availableHeight * requestPaneRatio)
+  const requestPanePercentage = availableHeight ? Math.round((requestPaneHeight / availableHeight) * 100) : 46
+
+  const setRequestPaneHeight = (height: number): void => {
+    if (!availableHeight) return
+    setRequestPaneRatio(clampRequestPaneHeight(availableHeight, height) / availableHeight)
+  }
+
+  const dragRequestPane = (clientY: number): void => {
+    const bounds = mainPaneRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    setRequestPaneHeight(clientY - bounds.top - (hasRequestTabs ? REQUEST_TAB_BAR_HEIGHT : 0))
+  }
 
   useEffect(() => {
     if (!workspace || !selectedRequestId || !findRequest(workspace, selectedRequestId)) return
@@ -903,7 +949,19 @@ export function App(): React.JSX.Element {
           onDeleteRequest={deleteRequest}
           onShowHistory={() => setModal('history')}
         />
-        <main className={`main-pane${workspaceTabs.length ? ' has-open-tabs' : ''}`}>
+        <main
+          ref={mainPaneRef}
+          className={`main-pane${hasRequestTabs ? ' has-open-tabs' : ''}${
+            selectedRequest && !selectedCollection ? ' with-splitter' : ''
+          }`}
+          style={
+            selectedRequest && !selectedCollection && mainPaneHeight
+              ? {
+                  gridTemplateRows: `${hasRequestTabs ? `${REQUEST_TAB_BAR_HEIGHT}px ` : ''}${requestPaneHeight}px 6px minmax(0, 1fr)`
+                }
+              : undefined
+          }
+        >
           {workspaceTabs.length > 0 && (
             <RequestTabBar
               tabs={workspaceTabs}
@@ -960,6 +1018,16 @@ export function App(): React.JSX.Element {
                 onOpenCurl={() => void openCurl()}
                 onImportCurl={importCurlIntoCurrentRequest}
                 onOpenVariables={() => setModal('environment')}
+              />
+              <RequestPaneSplitter
+                percentage={requestPanePercentage}
+                onDrag={dragRequestPane}
+                onAdjust={(delta) => setRequestPaneHeight(requestPaneHeight + delta)}
+                onLimit={(edge) => {
+                  const bounds = requestPaneBounds(availableHeight)
+                  setRequestPaneHeight(edge === 'min' ? bounds.min : bounds.max)
+                }}
+                onReset={() => setRequestPaneRatio(DEFAULT_REQUEST_PANE_RATIO)}
               />
               <ResponseViewer response={response} sending={sending} />
             </>
@@ -1455,4 +1523,13 @@ function isEditableTarget(target: EventTarget | null): boolean {
     target instanceof HTMLSelectElement ||
     (target instanceof HTMLElement && target.isContentEditable)
   )
+}
+
+function readRequestPaneRatio(): number {
+  try {
+    const saved = Number(window.localStorage.getItem('postblack:request-pane-ratio'))
+    return Number.isFinite(saved) && saved > 0 && saved < 1 ? saved : DEFAULT_REQUEST_PANE_RATIO
+  } catch {
+    return DEFAULT_REQUEST_PANE_RATIO
+  }
 }
