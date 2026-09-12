@@ -33,7 +33,7 @@ interface SidebarProps {
   selectedRequestId: string | null
   selectedCollectionId: string | null
   onSelectCollection: (collection: RequestCollection) => void
-  onSelectRequest: (request: ApiRequest) => void
+  onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onAddCollection: () => void
   onRenameCollection: (collection: RequestCollection) => void
@@ -344,7 +344,7 @@ function CollectionNode({
   openRequestMenuId: string | null
   openCollectionMenuId: string | null
   onSelectCollection: (collection: RequestCollection) => void
-  onSelectRequest: (request: ApiRequest) => void
+  onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onAddRequest: (collectionId: string, folderId?: string) => void
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
@@ -443,7 +443,7 @@ function FolderNode({
   onAddRequest: (collectionId: string, folderId?: string) => void
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
-  onSelectRequest: (request: ApiRequest) => void
+  onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
 }): React.JSX.Element {
@@ -507,7 +507,7 @@ function RequestTreeItem({
   request: ApiRequest
   selectedRequestId: string | null
   openRequestMenuId: string | null
-  onSelectRequest: (request: ApiRequest) => void
+  onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
 }): React.JSX.Element {
@@ -517,7 +517,11 @@ function RequestTreeItem({
         className={request.id === selectedRequestId ? 'request-row selected' : 'request-row'}
         onContextMenu={(event) => openFromContextMenu(event, request, onOpenRequestMenu)}
       >
-        <button className="request-select" onClick={() => onSelectRequest(request)}>
+        <button
+          className="request-select"
+          onClick={(event) => onSelectRequest(request, event.detail >= 2)}
+          title="Double-click to keep this request open"
+        >
           <span className={`method-label method-${request.method.toLowerCase()}`}>{request.method}</span>
           <span>{request.name}</span>
         </button>

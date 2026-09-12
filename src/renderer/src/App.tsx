@@ -35,11 +35,13 @@ import { CollectionOverview } from './components/CollectionOverview'
 import { Modal } from './components/Modal'
 import { MoveCollectionModal } from './components/MoveCollectionModal'
 import { RequestEditor } from './components/RequestEditor'
+import { RequestTabBar } from './components/RequestTabBar'
 import { ResponseViewer } from './components/ResponseViewer'
 import { Sidebar } from './components/Sidebar'
 import { TextInputModal } from './components/TextInputModal'
 import { UpdateNotice } from './components/UpdateNotice'
 import { WorkspaceSettingsModal } from './components/WorkspaceSettingsModal'
+import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
 
 type SaveState = 'saved' | 'saving' | 'error'
 type ModalName = 'environment' | 'curl' | 'history' | 'workspace' | 'workspace-settings' | null
@@ -56,6 +58,9 @@ export function App(): React.JSX.Element {
   const [state, setState] = useState<AppState | null>(null)
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
+  const [openTabs, setOpenTabs] = useState<OpenRequestTab[]>([])
+  const [requestDrafts, setRequestDrafts] = useState<Record<string, ApiRequest>>({})
+  const [closingDirtyTabId, setClosingDirtyTabId] = useState<string | null>(null)
   const [response, setResponse] = useState<ResponseSnapshot | null>(null)
   const [sending, setSending] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('saved')
@@ -68,6 +73,7 @@ export function App(): React.JSX.Element {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [manualUpdateCheck, setManualUpdateCheck] = useState(0)
   const hydrated = useRef(false)
+  const immediateSave = useRef(false)
 
   useEffect(() => {
     void window.postblack.app.info().then(setAppInfo)
@@ -92,23 +98,37 @@ export function App(): React.JSX.Element {
   useEffect(() => {
     if (!state || !hydrated.current) return
     setSaveState('saving')
+    const delay = immediateSave.current ? 0 : 350
+    immediateSave.current = false
     const timeout = window.setTimeout(() => {
       window.postblack
         .saveState(state)
         .then(() => setSaveState('saved'))
         .catch(() => setSaveState('error'))
-    }, 350)
+    }, delay)
     return () => window.clearTimeout(timeout)
   }, [state])
 
   const workspace = state?.workspaces.find((item) => item.id === state.activeWorkspaceId) ?? null
-  const selectedRequest = workspace ? findRequest(workspace, selectedRequestId) : null
+  const persistedRequest = workspace ? findRequest(workspace, selectedRequestId) : null
+  const selectedRequest = selectedRequestId ? (requestDrafts[selectedRequestId] ?? persistedRequest) : null
   const selectedCollection = workspace?.collections.find((item) => item.id === selectedCollectionId) ?? null
   const movingCollection = workspace?.collections.find((item) => item.id === movingCollectionId) ?? null
   const variables = useMemo(
     () => (workspace ? scopedVariables(state?.globalVariables ?? [], workspace) : {}),
     [state?.globalVariables, workspace]
   )
+  const dirtyRequestIds = new Set(Object.keys(requestDrafts))
+  const workspaceTabs = openTabs.filter(
+    (tab) => tab.workspaceId === workspace?.id && workspace && findRequest(workspace, tab.requestId)
+  )
+
+  useEffect(() => {
+    if (!workspace || !selectedRequestId || !findRequest(workspace, selectedRequestId)) return
+    setOpenTabs((current) => openRequestTab(current, workspace.id, selectedRequestId, false, dirtyRequestIds))
+    // Tabs open when the selected request changes, not on each workspace edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace?.id, selectedRequestId])
 
   const updateWorkspace = useCallback((updater: (workspace: Workspace) => Workspace) => {
     setState((current) =>
@@ -136,6 +156,53 @@ export function App(): React.JSX.Element {
         }))
       }))
     }))
+  }
+
+  const editRequest = (request: ApiRequest): void => {
+    const saved = workspace ? findRequest(workspace, request.id) : null
+    setRequestDrafts((current) => {
+      const next = { ...current }
+      if (saved && sameRequestContent(saved, request)) delete next[request.id]
+      else next[request.id] = request
+      return next
+    })
+  }
+
+  const saveRequestDraft = (requestId: string): void => {
+    const draft = requestDrafts[requestId]
+    if (!draft) return
+    immediateSave.current = true
+    setSaveState('saving')
+    updateRequest(draft)
+    setRequestDrafts((current) => {
+      const next = { ...current }
+      delete next[requestId]
+      return next
+    })
+  }
+
+  const closeTab = (requestId: string, discardDraft = false): void => {
+    if (requestDrafts[requestId] && !discardDraft) {
+      setClosingDirtyTabId(requestId)
+      return
+    }
+    if (!workspace) return
+    const remaining = closeRequestTab(openTabs, workspace.id, requestId)
+    setOpenTabs(remaining)
+    if (discardDraft) {
+      setRequestDrafts((current) => {
+        const next = { ...current }
+        delete next[requestId]
+        return next
+      })
+    }
+    if (selectedRequestId === requestId) {
+      setSelectedRequestId(
+        remaining.filter((tab) => tab.workspaceId === workspace.id).at(-1)?.requestId ?? null
+      )
+      setResponse(null)
+    }
+    setClosingDirtyTabId(null)
   }
 
   const sendRequest = async (): Promise<void> => {
@@ -562,6 +629,12 @@ export function App(): React.JSX.Element {
         }))
       }))
     }))
+    setOpenTabs((current) => closeRequestTab(current, workspace.id, request.id))
+    setRequestDrafts((current) => {
+      const next = { ...current }
+      delete next[request.id]
+      return next
+    })
     setSelectedRequestId(nextRequest?.id ?? null)
     setResponse(null)
     showNotice(`Request "${request.name}" deleted.`)
@@ -619,7 +692,7 @@ export function App(): React.JSX.Element {
 
     try {
       const imported = await window.postblack.importCurl(command)
-      updateRequest({
+      editRequest({
         ...imported.request,
         id: selectedRequest.id,
         name: selectedRequest.name,
@@ -675,10 +748,15 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     const handleRequestShortcut = (event: KeyboardEvent): void => {
-      if (isEditableTarget(event.target)) return
-
       const key = event.key.toLowerCase()
       const commandPressed = event.metaKey || event.ctrlKey
+      if (commandPressed && key === 's' && selectedRequestId && !modal && !textDialog && !closingDirtyTabId) {
+        event.preventDefault()
+        saveRequestDraft(selectedRequestId)
+        return
+      }
+      if (isEditableTarget(event.target)) return
+
       if (selectedCollection && (key === 'delete' || key === 'backspace')) {
         event.preventDefault()
         deleteCollection(selectedCollection)
@@ -790,8 +868,11 @@ export function App(): React.JSX.Element {
             setSelectedRequestId(null)
             setResponse(null)
           }}
-          onSelectRequest={(request) => {
+          onSelectRequest={(request, pinned) => {
             const isAlreadySelected = request.id === selectedRequestId
+            setOpenTabs((current) =>
+              openRequestTab(current, workspace.id, request.id, Boolean(pinned), dirtyRequestIds)
+            )
             setSelectedRequestId(request.id)
             setSelectedCollectionId(null)
             if (!isAlreadySelected) setResponse(null)
@@ -822,7 +903,33 @@ export function App(): React.JSX.Element {
           onDeleteRequest={deleteRequest}
           onShowHistory={() => setModal('history')}
         />
-        <main className="main-pane">
+        <main className={`main-pane${workspaceTabs.length ? ' has-open-tabs' : ''}`}>
+          {workspaceTabs.length > 0 && (
+            <RequestTabBar
+              tabs={workspaceTabs}
+              requests={Object.fromEntries(
+                workspace.collections.flatMap((collection) =>
+                  requestsInCollection(collection).map((request) => [
+                    request.id,
+                    requestDrafts[request.id] ?? request
+                  ])
+                )
+              )}
+              selectedRequestId={selectedCollection ? null : selectedRequestId}
+              dirtyRequestIds={dirtyRequestIds}
+              onSelect={(requestId) => {
+                setSelectedRequestId(requestId)
+                setSelectedCollectionId(null)
+                setResponse(null)
+              }}
+              onPin={(requestId) =>
+                setOpenTabs((current) =>
+                  openRequestTab(current, workspace.id, requestId, true, dirtyRequestIds)
+                )
+              }
+              onClose={(requestId) => closeTab(requestId)}
+            />
+          )}
           {selectedCollection ? (
             <CollectionOverview
               collection={selectedCollection}
@@ -841,12 +948,14 @@ export function App(): React.JSX.Element {
                 request={selectedRequest}
                 sending={sending}
                 saveState={saveState}
+                dirty={Boolean(selectedRequestId && requestDrafts[selectedRequestId])}
                 variableNames={Object.keys(variables).sort((a, b) => a.localeCompare(b))}
                 activeEnvironmentName={
                   workspace.environments.find((item) => item.id === workspace.activeEnvironmentId)?.name ??
                   null
                 }
-                onChange={updateRequest}
+                onChange={editRequest}
+                onSave={() => selectedRequestId && saveRequestDraft(selectedRequestId)}
                 onSend={() => void sendRequest()}
                 onOpenCurl={() => void openCurl()}
                 onImportCurl={importCurlIntoCurrentRequest}
@@ -912,6 +1021,28 @@ export function App(): React.JSX.Element {
           }}
           onClose={() => setTextDialog(null)}
         />
+      )}
+      {closingDirtyTabId && (
+        <Modal title="Unsaved request" onClose={() => setClosingDirtyTabId(null)}>
+          <p className="muted">Save your changes before closing this tab?</p>
+          <div className="modal-actions">
+            <button className="button secondary" onClick={() => setClosingDirtyTabId(null)}>
+              Cancel
+            </button>
+            <button className="button secondary" onClick={() => closeTab(closingDirtyTabId, true)}>
+              Discard
+            </button>
+            <button
+              className="button primary"
+              onClick={() => {
+                saveRequestDraft(closingDirtyTabId)
+                closeTab(closingDirtyTabId, true)
+              }}
+            >
+              Save and close
+            </button>
+          </div>
+        </Modal>
       )}
       {movingCollection && state && (
         <MoveCollectionModal
@@ -1243,6 +1374,10 @@ function findRequest(workspace: Workspace, requestId: string | null): ApiRequest
   return (
     workspace.collections.flatMap(requestsInCollection).find((request) => request.id === requestId) ?? null
   )
+}
+
+function sameRequestContent(first: ApiRequest, second: ApiRequest): boolean {
+  return JSON.stringify({ ...first, updatedAt: null }) === JSON.stringify({ ...second, updatedAt: null })
 }
 
 function firstRequestInWorkspace(workspace: Workspace): ApiRequest | null {

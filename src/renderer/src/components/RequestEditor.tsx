@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Code2, Eye, EyeOff, Send, Variable } from 'lucide-react'
+import { Check, ChevronDown, Code2, Eye, EyeOff, Save, Send, Variable } from 'lucide-react'
 import { useState } from 'react'
 import { isCurlCommand } from '../../../shared/curl'
 import { HTTP_METHODS, type ApiRequest, type RequestAuth } from '../../../shared/domain'
@@ -10,9 +10,11 @@ interface RequestEditorProps {
   request: ApiRequest
   sending: boolean
   saveState: 'saved' | 'saving' | 'error'
+  dirty: boolean
   variableNames: string[]
   activeEnvironmentName: string | null
   onChange: (request: ApiRequest) => void
+  onSave: () => void
   onSend: () => void
   onOpenCurl: () => void
   onImportCurl: (command: string) => Promise<void>
@@ -23,9 +25,11 @@ export function RequestEditor({
   request,
   sending,
   saveState,
+  dirty,
   variableNames,
   activeEnvironmentName,
   onChange,
+  onSave,
   onSend,
   onOpenCurl,
   onImportCurl,
@@ -53,9 +57,18 @@ export function RequestEditor({
           value={request.name}
           onChange={(event) => patch({ name: event.target.value })}
         />
-        <div className={`save-indicator ${saveState}`}>
-          <Check size={13} /> {saveState === 'saved' ? 'Saved locally' : saveState}
+        <div className={`save-indicator ${dirty ? 'unsaved' : saveState}`}>
+          {dirty ? <span className="request-tab-dirty-dot" /> : <Check size={13} />}
+          {dirty ? 'Unsaved changes' : saveState === 'saved' ? 'Saved locally' : saveState}
         </div>
+        <button
+          className="button secondary"
+          onClick={onSave}
+          disabled={!dirty}
+          title="Save request (Ctrl/⌘+S)"
+        >
+          <Save size={15} /> Save
+        </button>
         <button className="button secondary" onClick={onOpenCurl}>
           <Code2 size={15} /> cURL
         </button>
