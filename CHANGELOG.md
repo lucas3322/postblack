@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2 — 2026-09-12
+
+- fix: adicionar funcionalidade de formatação JSON e testes correspondentes (130309f)
+
 ## 0.6.1 — 2026-09-12
 
 - fix: adicionar editor de corpo JSON com suporte a destaque e edição de grandes volumes (38be242)
