@@ -53,6 +53,14 @@ export interface RequestCollection {
   name: string
   description: string
   requests: ApiRequest[]
+  folders: RequestFolder[]
+  createdAt: string
+}
+
+export interface RequestFolder {
+  id: string
+  name: string
+  requests: ApiRequest[]
   createdAt: string
 }
 
@@ -201,6 +209,7 @@ export function createWorkspace(name = 'My workspace'): Workspace {
         name: 'Getting started',
         description: 'Your first Postblack collection.',
         requests: [request],
+        folders: [],
         createdAt: timestamp
       }
     ],

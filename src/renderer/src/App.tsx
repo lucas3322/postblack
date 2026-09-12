@@ -23,12 +23,14 @@ import {
   type AppState,
   type RequestCollection,
   type RequestExample,
+  type RequestFolder,
   type ResponseSnapshot,
   type Workspace
 } from '../../shared/domain'
 import { resolveVariables, scopedVariables } from '../../shared/variables'
 import { KeyValueEditor } from './components/KeyValueEditor'
 import { BrandLogo } from './components/BrandLogo'
+import { CollectionOverview } from './components/CollectionOverview'
 import { Modal } from './components/Modal'
 import { RequestEditor } from './components/RequestEditor'
 import { ResponseViewer } from './components/ResponseViewer'
@@ -36,11 +38,12 @@ import { Sidebar } from './components/Sidebar'
 import { UpdateNotice } from './components/UpdateNotice'
 
 type SaveState = 'saved' | 'saving' | 'error'
-type ModalName = 'environment' | 'curl' | 'history' | null
+type ModalName = 'environment' | 'curl' | 'history' | 'workspace' | null
 
 export function App(): React.JSX.Element {
   const [state, setState] = useState<AppState | null>(null)
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
   const [response, setResponse] = useState<ResponseSnapshot | null>(null)
   const [sending, setSending] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('saved')
@@ -86,6 +89,7 @@ export function App(): React.JSX.Element {
 
   const workspace = state?.workspaces.find((item) => item.id === state.activeWorkspaceId) ?? null
   const selectedRequest = workspace ? findRequest(workspace, selectedRequestId) : null
+  const selectedCollection = workspace?.collections.find((item) => item.id === selectedCollectionId) ?? null
   const variables = useMemo(
     () => (workspace ? scopedVariables(state?.globalVariables ?? [], workspace) : {}),
     [state?.globalVariables, workspace]
@@ -110,7 +114,11 @@ export function App(): React.JSX.Element {
       updatedAt: nowIso(),
       collections: current.collections.map((collection) => ({
         ...collection,
-        requests: collection.requests.map((item) => (item.id === request.id ? request : item))
+        requests: collection.requests.map((item) => (item.id === request.id ? request : item)),
+        folders: collection.folders.map((folder) => ({
+          ...folder,
+          requests: folder.requests.map((item) => (item.id === request.id ? request : item))
+        }))
       }))
     }))
   }
@@ -138,12 +146,29 @@ export function App(): React.JSX.Element {
       'New collection',
       workspace.collections.map((item) => item.name)
     )
+    const collection: RequestCollection = {
+      id: createId('collection'),
+      name,
+      description: '',
+      requests: [],
+      folders: [],
+      createdAt: nowIso()
+    }
     updateWorkspace((current) => ({
       ...current,
-      collections: [
-        ...current.collections,
-        { id: createId('collection'), name, requests: [], createdAt: nowIso() }
-      ]
+      updatedAt: nowIso(),
+      collections: [...current.collections, collection]
+    }))
+    setSelectedCollectionId(collection.id)
+    setSelectedRequestId(null)
+    setResponse(null)
+  }
+
+  const updateCollection = (collection: RequestCollection): void => {
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.map((item) => (item.id === collection.id ? collection : item))
     }))
   }
 
@@ -159,18 +184,214 @@ export function App(): React.JSX.Element {
     showNotice(`Collection renamed to "${name}".`)
   }
 
-  const addRequest = (collectionId: string): void => {
+  const addFolder = (collection: RequestCollection): void => {
+    const name = window.prompt('Folder name', 'New folder')?.trim()
+    if (!name) return
+    const folder: RequestFolder = { id: createId('folder'), name, requests: [], createdAt: nowIso() }
+    updateCollection({ ...collection, folders: [...collection.folders, folder] })
+    showNotice(`Folder "${name}" created.`)
+  }
+
+  const renameFolder = (collection: RequestCollection, folder: RequestFolder): void => {
+    const name = window.prompt('Rename folder', folder.name)?.trim()
+    if (!name || name === folder.name) return
+    updateCollection({
+      ...collection,
+      folders: collection.folders.map((item) => (item.id === folder.id ? { ...item, name } : item))
+    })
+  }
+
+  const deleteFolder = (collection: RequestCollection, folder: RequestFolder): void => {
+    if (!window.confirm(`Delete folder "${folder.name}" and all its requests?`)) return
+    updateCollection({
+      ...collection,
+      folders: collection.folders.filter((item) => item.id !== folder.id)
+    })
+    if (folder.requests.some((request) => request.id === selectedRequestId)) {
+      setSelectedRequestId(null)
+      setSelectedCollectionId(collection.id)
+      setResponse(null)
+    }
+  }
+
+  const addRequest = (collectionId: string, folderId?: string): void => {
     const request = createRequest()
     updateWorkspace((current) => ({
       ...current,
       collections: current.collections.map((collection) =>
         collection.id === collectionId
-          ? { ...collection, requests: [...collection.requests, request] }
+          ? folderId
+            ? {
+                ...collection,
+                folders: collection.folders.map((folder) =>
+                  folder.id === folderId ? { ...folder, requests: [...folder.requests, request] } : folder
+                )
+              }
+            : { ...collection, requests: [...collection.requests, request] }
           : collection
       )
     }))
     setSelectedRequestId(request.id)
+    setSelectedCollectionId(null)
     setResponse(null)
+  }
+
+  const copyCollection = async (collection: RequestCollection): Promise<void> => {
+    await navigator.clipboard.writeText(JSON.stringify(collection, null, 2))
+    showNotice(`Collection "${collection.name}" copied as JSON.`)
+  }
+
+  const duplicateCollection = (collection: RequestCollection): void => {
+    if (!workspace) return
+    const name = uniqueName(
+      `${collection.name} copy`,
+      workspace.collections.map((item) => item.name)
+    )
+    const duplicate: RequestCollection = {
+      ...collection,
+      id: createId('collection'),
+      name,
+      requests: collection.requests.map((request) => cloneRequest(request, request.name)),
+      folders: collection.folders.map((folder) => ({
+        ...folder,
+        id: createId('folder'),
+        requests: folder.requests.map((request) => cloneRequest(request, request.name)),
+        createdAt: nowIso()
+      })),
+      createdAt: nowIso()
+    }
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: [...current.collections, duplicate]
+    }))
+    setSelectedCollectionId(duplicate.id)
+    setSelectedRequestId(null)
+    setResponse(null)
+    showNotice(`Collection duplicated as "${name}".`)
+  }
+
+  const sortCollection = (collection: RequestCollection): void => {
+    updateCollection({
+      ...collection,
+      requests: [...collection.requests].sort((left, right) => left.name.localeCompare(right.name)),
+      folders: [...collection.folders]
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map((folder) => ({
+          ...folder,
+          requests: [...folder.requests].sort((left, right) => left.name.localeCompare(right.name))
+        }))
+    })
+    showNotice(`Requests in "${collection.name}" sorted A–Z.`)
+  }
+
+  const deleteCollection = (collection: RequestCollection): void => {
+    if (!window.confirm(`Delete collection "${collection.name}" and all its requests?`)) return
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.filter((item) => item.id !== collection.id)
+    }))
+    setSelectedCollectionId(null)
+    if (requestsInCollection(collection).some((request) => request.id === selectedRequestId)) {
+      setSelectedRequestId(null)
+      setResponse(null)
+    }
+    showNotice(`Collection "${collection.name}" deleted.`)
+  }
+
+  const runCollection = async (collection: RequestCollection): Promise<void> => {
+    if (!state) return
+    const requests = requestsInCollection(collection)
+    if (!requests.length) {
+      showNotice('Add at least one request before running this collection.')
+      return
+    }
+
+    setSending(true)
+    try {
+      const results: ResponseSnapshot[] = []
+      for (const request of requests) {
+        try {
+          results.push(await window.postblack.executeRequest({ request, variables }))
+        } catch (error) {
+          results.push({
+            id: createId('response'),
+            requestId: request.id,
+            requestName: request.name,
+            method: request.method,
+            url: resolveVariables(request.url, variables),
+            status: 0,
+            statusText: 'Request failed',
+            durationMs: 0,
+            sizeBytes: 0,
+            headers: [],
+            body: '',
+            contentType: '',
+            error: error instanceof Error ? error.message : 'Unknown request error',
+            createdAt: nowIso()
+          })
+        }
+      }
+      const lastResult = results.at(-1) ?? null
+      setState((current) =>
+        current
+          ? { ...current, history: [...results].reverse().concat(current.history).slice(0, 100) }
+          : current
+      )
+      if (lastResult) {
+        setSelectedRequestId(lastResult.requestId)
+        setSelectedCollectionId(null)
+        setResponse(lastResult)
+      }
+      const failed = results.filter((result) => result.error || result.status >= 400).length
+      showNotice(`Collection finished: ${results.length - failed} succeeded, ${failed} failed.`)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const moveCollection = (collection: RequestCollection): void => {
+    if (!state || !workspace) return
+    const destinations = state.workspaces.filter((item) => item.id !== workspace.id)
+    if (!destinations.length) {
+      showNotice('Create another workspace before moving this collection.')
+      return
+    }
+    const destinationName = window
+      .prompt(`Move to workspace:\n${destinations.map((item) => `• ${item.name}`).join('\n')}`)
+      ?.trim()
+    const destination = destinations.find(
+      (item) => item.name.toLocaleLowerCase() === destinationName?.toLocaleLowerCase()
+    )
+    if (!destination) {
+      if (destinationName) showNotice('Workspace not found. Enter one of the listed names.')
+      return
+    }
+
+    setState((current) =>
+      current
+        ? {
+            ...current,
+            workspaces: current.workspaces.map((item) => {
+              if (item.id === workspace.id) {
+                return {
+                  ...item,
+                  collections: item.collections.filter((entry) => entry.id !== collection.id)
+                }
+              }
+              if (item.id === destination.id) {
+                return { ...item, collections: [...item.collections, collection], updatedAt: nowIso() }
+              }
+              return item
+            })
+          }
+        : current
+    )
+    setSelectedCollectionId(null)
+    setSelectedRequestId(null)
+    setResponse(null)
+    showNotice(`Collection moved to "${destination.name}".`)
   }
 
   const addExample = (request: ApiRequest): void => {
@@ -230,7 +451,9 @@ export function App(): React.JSX.Element {
 
   const duplicateRequest = (request: ApiRequest): void => {
     if (!workspace) return
-    const names = workspace.collections.flatMap((collection) => collection.requests.map((item) => item.name))
+    const names = workspace.collections.flatMap((collection) =>
+      requestsInCollection(collection).map((item) => item.name)
+    )
     const duplicate = cloneRequest(request, uniqueName(`${request.name} copy`, names))
 
     updateWorkspace((current) => ({
@@ -238,13 +461,26 @@ export function App(): React.JSX.Element {
       updatedAt: nowIso(),
       collections: current.collections.map((collection) => {
         const requestIndex = collection.requests.findIndex((item) => item.id === request.id)
-        if (requestIndex < 0) return collection
-        const requests = [...collection.requests]
-        requests.splice(requestIndex + 1, 0, duplicate)
-        return { ...collection, requests }
+        if (requestIndex >= 0) {
+          const requests = [...collection.requests]
+          requests.splice(requestIndex + 1, 0, duplicate)
+          return { ...collection, requests }
+        }
+
+        return {
+          ...collection,
+          folders: collection.folders.map((folder) => {
+            const folderRequestIndex = folder.requests.findIndex((item) => item.id === request.id)
+            if (folderRequestIndex < 0) return folder
+            const requests = [...folder.requests]
+            requests.splice(folderRequestIndex + 1, 0, duplicate)
+            return { ...folder, requests }
+          })
+        }
       })
     }))
     setSelectedRequestId(duplicate.id)
+    setSelectedCollectionId(null)
     setResponse(null)
     showNotice(`Request duplicated as "${duplicate.name}".`)
   }
@@ -252,7 +488,7 @@ export function App(): React.JSX.Element {
   const deleteRequest = (request: ApiRequest): void => {
     if (!workspace || !window.confirm(`Delete request "${request.name}"?`)) return
 
-    const requests = workspace.collections.flatMap((collection) => collection.requests)
+    const requests = workspace.collections.flatMap(requestsInCollection)
     const requestIndex = requests.findIndex((item) => item.id === request.id)
     const nextRequest = requests[requestIndex + 1] ?? requests[requestIndex - 1] ?? null
 
@@ -261,7 +497,11 @@ export function App(): React.JSX.Element {
       updatedAt: nowIso(),
       collections: current.collections.map((collection) => ({
         ...collection,
-        requests: collection.requests.filter((item) => item.id !== request.id)
+        requests: collection.requests.filter((item) => item.id !== request.id),
+        folders: collection.folders.map((folder) => ({
+          ...folder,
+          requests: folder.requests.filter((item) => item.id !== request.id)
+        }))
       }))
     }))
     setSelectedRequestId(nextRequest?.id ?? null)
@@ -270,19 +510,24 @@ export function App(): React.JSX.Element {
   }
 
   const addWorkspace = (): void => {
+    setModal('workspace')
+  }
+
+  const createNewWorkspace = (name: string, description: string): void => {
     if (!state) return
-    const newWorkspace = createWorkspace(
-      uniqueName(
-        'New workspace',
-        state.workspaces.map((item) => item.name)
-      )
-    )
+    const newWorkspace = createWorkspace(name)
+    newWorkspace.description = description
+    newWorkspace.collections = []
     setState({
       ...state,
       workspaces: [...state.workspaces, newWorkspace],
       activeWorkspaceId: newWorkspace.id
     })
-    setSelectedRequestId(firstRequestInWorkspace(newWorkspace)?.id ?? null)
+    setSelectedRequestId(null)
+    setSelectedCollectionId(null)
+    setResponse(null)
+    setModal(null)
+    showNotice(`Workspace "${name}" created.`)
   }
 
   const renameWorkspace = (): void => {
@@ -299,6 +544,7 @@ export function App(): React.JSX.Element {
     const next = state.workspaces.find((item) => item.id === workspaceId)
     setState({ ...state, activeWorkspaceId: workspaceId })
     setSelectedRequestId(next ? (firstRequestInWorkspace(next)?.id ?? null) : null)
+    setSelectedCollectionId(null)
     setResponse(null)
   }
 
@@ -350,6 +596,7 @@ export function App(): React.JSX.Element {
         )
       }))
       setSelectedRequestId(imported.request.id)
+      setSelectedCollectionId(null)
       setCurlInput('')
       setModal(null)
       showNotice(
@@ -369,20 +616,29 @@ export function App(): React.JSX.Element {
 
   useEffect(() => {
     const handleRequestShortcut = (event: KeyboardEvent): void => {
-      if (!selectedRequest || isEditableTarget(event.target)) return
+      if (isEditableTarget(event.target)) return
 
       const key = event.key.toLowerCase()
       const commandPressed = event.metaKey || event.ctrlKey
-      if (key === 'delete' || key === 'backspace') {
+      if (selectedCollection && (key === 'delete' || key === 'backspace')) {
+        event.preventDefault()
+        deleteCollection(selectedCollection)
+      } else if (selectedCollection && commandPressed && key === 'e') {
+        event.preventDefault()
+        renameCollection(selectedCollection)
+      } else if (selectedCollection && commandPressed && key === 'd') {
+        event.preventDefault()
+        duplicateCollection(selectedCollection)
+      } else if (selectedRequest && (key === 'delete' || key === 'backspace')) {
         event.preventDefault()
         deleteRequest(selectedRequest)
-      } else if (commandPressed && key === 'e') {
+      } else if (selectedRequest && commandPressed && key === 'e') {
         event.preventDefault()
         renameRequest(selectedRequest)
-      } else if (commandPressed && key === 'c') {
+      } else if (selectedRequest && commandPressed && key === 'c') {
         event.preventDefault()
         void copyRequest(selectedRequest)
-      } else if (commandPressed && key === 'd') {
+      } else if (selectedRequest && commandPressed && key === 'd') {
         event.preventDefault()
         duplicateRequest(selectedRequest)
       }
@@ -461,17 +717,34 @@ export function App(): React.JSX.Element {
         <Sidebar
           workspace={workspace}
           selectedRequestId={selectedRequestId}
+          selectedCollectionId={selectedCollectionId}
+          onSelectCollection={(collection) => {
+            setSelectedCollectionId(collection.id)
+            setSelectedRequestId(null)
+            setResponse(null)
+          }}
           onSelectRequest={(request) => {
             const isAlreadySelected = request.id === selectedRequestId
             setSelectedRequestId(request.id)
+            setSelectedCollectionId(null)
             if (!isAlreadySelected) setResponse(null)
           }}
           onSelectExample={(request, example) => {
             setSelectedRequestId(request.id)
+            setSelectedCollectionId(null)
             setResponse(example.response)
           }}
           onAddCollection={addCollection}
           onRenameCollection={renameCollection}
+          onCopyCollection={(collection) => void copyCollection(collection)}
+          onDuplicateCollection={duplicateCollection}
+          onSortCollection={sortCollection}
+          onDeleteCollection={deleteCollection}
+          onAddFolder={addFolder}
+          onRenameFolder={renameFolder}
+          onDeleteFolder={deleteFolder}
+          onRunCollection={(collection) => void runCollection(collection)}
+          onMoveCollection={moveCollection}
           onAddRequest={addRequest}
           onAddExample={addExample}
           onShareRequest={(request) => void shareRequest(request)}
@@ -483,7 +756,19 @@ export function App(): React.JSX.Element {
           onShowHistory={() => setModal('history')}
         />
         <main className="main-pane">
-          {selectedRequest ? (
+          {selectedCollection ? (
+            <CollectionOverview
+              collection={selectedCollection}
+              onChange={updateCollection}
+              onAddRequest={() => addRequest(selectedCollection.id)}
+              onAddFolder={() => addFolder(selectedCollection)}
+              onRun={() => void runCollection(selectedCollection)}
+              onRename={() => renameCollection(selectedCollection)}
+              onCopy={() => void copyCollection(selectedCollection)}
+              onDuplicate={() => duplicateCollection(selectedCollection)}
+              onDelete={() => deleteCollection(selectedCollection)}
+            />
+          ) : selectedRequest ? (
             <>
               <RequestEditor
                 request={selectedRequest}
@@ -524,6 +809,16 @@ export function App(): React.JSX.Element {
         </span>
       </footer>
       <UpdateNotice manualCheckToken={manualUpdateCheck} />
+      {modal === 'workspace' && (
+        <WorkspaceModal
+          suggestedName={uniqueName(
+            'New workspace',
+            state.workspaces.map((item) => item.name)
+          )}
+          onCreate={createNewWorkspace}
+          onClose={() => setModal(null)}
+        />
+      )}
       {modal === 'environment' && (
         <EnvironmentModal
           globalVariables={state.globalVariables}
@@ -553,7 +848,10 @@ export function App(): React.JSX.Element {
           history={state.history}
           onSelect={(item) => {
             const request = findRequest(workspace, item.requestId)
-            if (request) setSelectedRequestId(request.id)
+            if (request) {
+              setSelectedRequestId(request.id)
+              setSelectedCollectionId(null)
+            }
             setResponse(item)
             setModal(null)
           }}
@@ -562,6 +860,69 @@ export function App(): React.JSX.Element {
       )}
       {notice && <div className="toast">{notice}</div>}
     </div>
+  )
+}
+
+function WorkspaceModal({
+  suggestedName,
+  onCreate,
+  onClose
+}: {
+  suggestedName: string
+  onCreate: (name: string, description: string) => void
+  onClose: () => void
+}): React.JSX.Element {
+  const [name, setName] = useState(suggestedName)
+  const [description, setDescription] = useState('')
+
+  return (
+    <Modal title="Create your workspace" onClose={onClose} wide>
+      <form
+        className="workspace-create-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          const normalizedName = name.trim()
+          if (normalizedName) onCreate(normalizedName, description.trim())
+        }}
+      >
+        <label className="field-label">
+          Workspace name
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="A project, service, or team name…"
+            autoFocus
+          />
+        </label>
+
+        <label className="field-label">
+          Description <span className="optional-label">Optional</span>
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="What will you build and test in this workspace?"
+          />
+        </label>
+
+        <div className="workspace-local-card">
+          <Layers3 size={20} />
+          <div>
+            <strong>Local & private workspace</strong>
+            <p>Stored only on this computer. Start blank and organize it with collections.</p>
+          </div>
+          <span>Selected</span>
+        </div>
+
+        <div className="modal-actions">
+          <button className="button secondary" type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="button primary" type="submit" disabled={!name.trim()}>
+            Create workspace
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -773,14 +1134,20 @@ function EmptyWorkspace({ onAdd }: { onAdd: () => void }): React.JSX.Element {
 function findRequest(workspace: Workspace, requestId: string | null): ApiRequest | null {
   if (!requestId) return null
   return (
-    workspace.collections
-      .flatMap((collection) => collection.requests)
-      .find((request) => request.id === requestId) ?? null
+    workspace.collections.flatMap(requestsInCollection).find((request) => request.id === requestId) ?? null
   )
 }
 
 function firstRequestInWorkspace(workspace: Workspace): ApiRequest | null {
-  return workspace.collections[0]?.requests[0] ?? null
+  for (const collection of workspace.collections) {
+    const request = requestsInCollection(collection)[0]
+    if (request) return request
+  }
+  return null
+}
+
+function requestsInCollection(collection: RequestCollection): ApiRequest[] {
+  return [...collection.requests, ...collection.folders.flatMap((folder) => folder.requests)]
 }
 
 function firstRequest(state: AppState): ApiRequest | null {

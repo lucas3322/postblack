@@ -1,14 +1,18 @@
 import {
+  ArrowDownAZ,
   ChevronDown,
   ChevronRight,
   Copy,
   ExternalLink,
   Files,
   FolderClosed,
+  FolderPlus,
   History,
   Link,
   MoreHorizontal,
+  MoveRight,
   Pencil,
+  Play,
   Plus,
   Search,
   Share2,
@@ -16,16 +20,33 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
-import type { ApiRequest, RequestCollection, RequestExample, Workspace } from '../../../shared/domain'
+import type {
+  ApiRequest,
+  RequestCollection,
+  RequestExample,
+  RequestFolder,
+  Workspace
+} from '../../../shared/domain'
 
 interface SidebarProps {
   workspace: Workspace
   selectedRequestId: string | null
+  selectedCollectionId: string | null
+  onSelectCollection: (collection: RequestCollection) => void
   onSelectRequest: (request: ApiRequest) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onAddCollection: () => void
   onRenameCollection: (collection: RequestCollection) => void
-  onAddRequest: (collectionId: string) => void
+  onCopyCollection: (collection: RequestCollection) => void
+  onDuplicateCollection: (collection: RequestCollection) => void
+  onSortCollection: (collection: RequestCollection) => void
+  onDeleteCollection: (collection: RequestCollection) => void
+  onAddFolder: (collection: RequestCollection) => void
+  onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onRunCollection: (collection: RequestCollection) => void
+  onMoveCollection: (collection: RequestCollection) => void
+  onAddRequest: (collectionId: string, folderId?: string) => void
   onAddExample: (request: ApiRequest) => void
   onShareRequest: (request: ApiRequest) => void
   onCopyLink: (request: ApiRequest) => void
@@ -42,13 +63,30 @@ interface RequestMenuState {
   y: number
 }
 
+interface CollectionMenuState {
+  collection: RequestCollection
+  x: number
+  y: number
+}
+
 export function Sidebar({
   workspace,
   selectedRequestId,
+  selectedCollectionId,
+  onSelectCollection,
   onSelectRequest,
   onSelectExample,
   onAddCollection,
   onRenameCollection,
+  onCopyCollection,
+  onDuplicateCollection,
+  onSortCollection,
+  onDeleteCollection,
+  onAddFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onRunCollection,
+  onMoveCollection,
   onAddRequest,
   onAddExample,
   onShareRequest,
@@ -61,6 +99,7 @@ export function Sidebar({
 }: SidebarProps): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [requestMenu, setRequestMenu] = useState<RequestMenuState | null>(null)
+  const [collectionMenu, setCollectionMenu] = useState<CollectionMenuState | null>(null)
   const firstMenuItem = useRef<HTMLButtonElement>(null)
   const collections = useMemo(
     () => filterCollections(workspace.collections, query),
@@ -68,10 +107,13 @@ export function Sidebar({
   )
 
   useEffect(() => {
-    if (!requestMenu) return
+    if (!requestMenu && !collectionMenu) return
 
     firstMenuItem.current?.focus()
-    const close = (): void => setRequestMenu(null)
+    const close = (): void => {
+      setRequestMenu(null)
+      setCollectionMenu(null)
+    }
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') close()
     }
@@ -86,11 +128,18 @@ export function Sidebar({
       window.removeEventListener('blur', close)
       window.removeEventListener('keydown', closeOnEscape)
     }
-  }, [requestMenu])
+  }, [requestMenu, collectionMenu])
 
   const openRequestMenu = (request: ApiRequest, x: number, y: number): void => {
     onSelectRequest(request)
+    setCollectionMenu(null)
     setRequestMenu({ request, ...menuPosition(x, y) })
+  }
+
+  const openCollectionMenu = (collection: RequestCollection, x: number, y: number): void => {
+    onSelectCollection(collection)
+    setRequestMenu(null)
+    setCollectionMenu({ collection, ...menuPosition(x, y, 390) })
   }
 
   const runMenuAction = (action: (request: ApiRequest) => void): void => {
@@ -98,6 +147,13 @@ export function Sidebar({
     const request = requestMenu.request
     setRequestMenu(null)
     action(request)
+  }
+
+  const runCollectionAction = (action: (collection: RequestCollection) => void): void => {
+    if (!collectionMenu) return
+    const collection = collectionMenu.collection
+    setCollectionMenu(null)
+    action(collection)
   }
 
   return (
@@ -125,12 +181,18 @@ export function Sidebar({
             key={collection.id}
             collection={collection}
             selectedRequestId={selectedRequestId}
+            selectedCollectionId={selectedCollectionId}
             openRequestMenuId={requestMenu?.request.id ?? null}
+            openCollectionMenuId={collectionMenu?.collection.id ?? null}
+            onSelectCollection={onSelectCollection}
             onSelectRequest={onSelectRequest}
             onSelectExample={onSelectExample}
             onAddRequest={onAddRequest}
+            onRenameFolder={onRenameFolder}
+            onDeleteFolder={onDeleteFolder}
             onRenameCollection={onRenameCollection}
             onOpenRequestMenu={openRequestMenu}
+            onOpenCollectionMenu={openCollectionMenu}
           />
         ))}
         {collections.length === 0 && <div className="empty-inline">No matching requests.</div>}
@@ -192,6 +254,70 @@ export function Sidebar({
           </div>,
           document.body
         )}
+      {collectionMenu &&
+        createPortal(
+          <div
+            className="request-context-menu collection-context-menu"
+            role="menu"
+            aria-label={`Actions for ${collectionMenu.collection.name}`}
+            style={{ left: collectionMenu.x, top: collectionMenu.y }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onContextMenu={(event) => event.preventDefault()}
+          >
+            <MenuButton
+              ref={firstMenuItem}
+              icon={<Plus size={15} />}
+              label="Add request"
+              onClick={() => runCollectionAction((collection) => onAddRequest(collection.id))}
+            />
+            <MenuButton
+              icon={<FolderPlus size={15} />}
+              label="Add folder"
+              onClick={() => runCollectionAction(onAddFolder)}
+            />
+            <MenuButton
+              icon={<Play size={15} />}
+              label="Run collection"
+              onClick={() => runCollectionAction(onRunCollection)}
+            />
+            <MenuButton
+              icon={<Copy size={15} />}
+              label="Copy as JSON"
+              onClick={() => runCollectionAction(onCopyCollection)}
+            />
+            <div className="request-menu-separator" />
+            <MenuButton
+              icon={<Pencil size={15} />}
+              label="Rename"
+              shortcut="⌘E"
+              onClick={() => runCollectionAction(onRenameCollection)}
+            />
+            <MenuButton
+              icon={<Files size={15} />}
+              label="Duplicate"
+              shortcut="⌘D"
+              onClick={() => runCollectionAction(onDuplicateCollection)}
+            />
+            <MenuButton
+              icon={<MoveRight size={15} />}
+              label="Move to workspace"
+              onClick={() => runCollectionAction(onMoveCollection)}
+            />
+            <MenuButton
+              icon={<ArrowDownAZ size={15} />}
+              label="Sort requests A–Z"
+              onClick={() => runCollectionAction(onSortCollection)}
+            />
+            <MenuButton
+              danger
+              icon={<Trash2 size={15} />}
+              label="Delete"
+              shortcut="⌫"
+              onClick={() => runCollectionAction(onDeleteCollection)}
+            />
+          </div>,
+          document.body
+        )}
     </aside>
   )
 }
@@ -199,32 +325,50 @@ export function Sidebar({
 function CollectionNode({
   collection,
   selectedRequestId,
+  selectedCollectionId,
   openRequestMenuId,
+  openCollectionMenuId,
+  onSelectCollection,
   onSelectRequest,
   onSelectExample,
   onAddRequest,
+  onRenameFolder,
+  onDeleteFolder,
   onRenameCollection,
-  onOpenRequestMenu
+  onOpenRequestMenu,
+  onOpenCollectionMenu
 }: {
   collection: RequestCollection
   selectedRequestId: string | null
+  selectedCollectionId: string | null
   openRequestMenuId: string | null
+  openCollectionMenuId: string | null
+  onSelectCollection: (collection: RequestCollection) => void
   onSelectRequest: (request: ApiRequest) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
-  onAddRequest: (collectionId: string) => void
+  onAddRequest: (collectionId: string, folderId?: string) => void
+  onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onRenameCollection: (collection: RequestCollection) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
+  onOpenCollectionMenu: (collection: RequestCollection, x: number, y: number) => void
 }): React.JSX.Element {
   const [open, setOpen] = useState(true)
   return (
     <div className="collection-node">
       <div
-        className="collection-row"
-        onDoubleClick={() => onRenameCollection(collection)}
-        title="Double-click to rename collection"
+        className={collection.id === selectedCollectionId ? 'collection-row selected' : 'collection-row'}
+        onContextMenu={(event) => openCollectionFromContextMenu(event, collection, onOpenCollectionMenu)}
       >
-        <button className="tree-toggle" onClick={() => setOpen(!open)}>
+        <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle collection">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+        <button
+          className="collection-select"
+          onClick={() => onSelectCollection(collection)}
+          onDoubleClick={() => onRenameCollection(collection)}
+          title="Double-click to rename collection"
+        >
           <FolderClosed size={15} />
           <span>{collection.name}</span>
         </button>
@@ -233,11 +377,14 @@ function CollectionNode({
         </button>
         <button
           className="icon-button ghost"
-          aria-label={`Rename ${collection.name}`}
-          title="Rename collection"
+          aria-label={`Actions for ${collection.name}`}
+          aria-haspopup="menu"
+          aria-expanded={openCollectionMenuId === collection.id}
+          title="Collection actions"
           onClick={(event) => {
             event.stopPropagation()
-            onRenameCollection(collection)
+            const bounds = event.currentTarget.getBoundingClientRect()
+            onOpenCollectionMenu(collection, bounds.right + 4, bounds.top)
           }}
         >
           <MoreHorizontal size={14} />
@@ -246,45 +393,158 @@ function CollectionNode({
       {open && (
         <div className="request-list">
           {collection.requests.map((request) => (
-            <div className="request-node" key={request.id}>
-              <div
-                className={request.id === selectedRequestId ? 'request-row selected' : 'request-row'}
-                onContextMenu={(event) => openFromContextMenu(event, request, onOpenRequestMenu)}
-              >
-                <button className="request-select" onClick={() => onSelectRequest(request)}>
-                  <span className={`method-label method-${request.method.toLowerCase()}`}>
-                    {request.method}
-                  </span>
-                  <span>{request.name}</span>
-                </button>
-                <button
-                  className="request-more"
-                  aria-label={`Actions for ${request.name}`}
-                  aria-haspopup="menu"
-                  aria-expanded={openRequestMenuId === request.id}
-                  title="Request actions"
-                  onClick={(event) => {
-                    const bounds = event.currentTarget.getBoundingClientRect()
-                    onOpenRequestMenu(request, bounds.right + 4, bounds.top)
-                  }}
-                >
-                  <MoreHorizontal size={15} />
-                </button>
-              </div>
-              {request.examples.map((example) => (
-                <button
-                  className="request-example"
-                  key={example.id}
-                  onClick={() => onSelectExample(request, example)}
-                >
-                  <ExternalLink size={11} />
-                  <span>{example.name}</span>
-                </button>
-              ))}
-            </div>
+            <RequestTreeItem
+              key={request.id}
+              request={request}
+              selectedRequestId={selectedRequestId}
+              openRequestMenuId={openRequestMenuId}
+              onSelectRequest={onSelectRequest}
+              onSelectExample={onSelectExample}
+              onOpenRequestMenu={onOpenRequestMenu}
+            />
+          ))}
+          {collection.folders.map((folder) => (
+            <FolderNode
+              key={folder.id}
+              collection={collection}
+              folder={folder}
+              selectedRequestId={selectedRequestId}
+              openRequestMenuId={openRequestMenuId}
+              onAddRequest={onAddRequest}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
+              onSelectRequest={onSelectRequest}
+              onSelectExample={onSelectExample}
+              onOpenRequestMenu={onOpenRequestMenu}
+            />
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function FolderNode({
+  collection,
+  folder,
+  selectedRequestId,
+  openRequestMenuId,
+  onAddRequest,
+  onRenameFolder,
+  onDeleteFolder,
+  onSelectRequest,
+  onSelectExample,
+  onOpenRequestMenu
+}: {
+  collection: RequestCollection
+  folder: RequestFolder
+  selectedRequestId: string | null
+  openRequestMenuId: string | null
+  onAddRequest: (collectionId: string, folderId?: string) => void
+  onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onSelectRequest: (request: ApiRequest) => void
+  onSelectExample: (request: ApiRequest, example: RequestExample) => void
+  onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
+}): React.JSX.Element {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="folder-node">
+      <div className="folder-row">
+        <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle folder">
+          {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        </button>
+        <button
+          className="folder-select"
+          onDoubleClick={() => onRenameFolder(collection, folder)}
+          title="Double-click to rename folder"
+        >
+          <FolderClosed size={14} />
+          <span>{folder.name}</span>
+        </button>
+        <button
+          className="icon-button ghost"
+          title="Add request to folder"
+          onClick={() => onAddRequest(collection.id, folder.id)}
+        >
+          <Plus size={13} />
+        </button>
+        <button
+          className="icon-button ghost folder-delete"
+          title="Delete folder"
+          onClick={() => onDeleteFolder(collection, folder)}
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+      {open && (
+        <div className="folder-request-list">
+          {folder.requests.map((request) => (
+            <RequestTreeItem
+              key={request.id}
+              request={request}
+              selectedRequestId={selectedRequestId}
+              openRequestMenuId={openRequestMenuId}
+              onSelectRequest={onSelectRequest}
+              onSelectExample={onSelectExample}
+              onOpenRequestMenu={onOpenRequestMenu}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RequestTreeItem({
+  request,
+  selectedRequestId,
+  openRequestMenuId,
+  onSelectRequest,
+  onSelectExample,
+  onOpenRequestMenu
+}: {
+  request: ApiRequest
+  selectedRequestId: string | null
+  openRequestMenuId: string | null
+  onSelectRequest: (request: ApiRequest) => void
+  onSelectExample: (request: ApiRequest, example: RequestExample) => void
+  onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
+}): React.JSX.Element {
+  return (
+    <div className="request-node">
+      <div
+        className={request.id === selectedRequestId ? 'request-row selected' : 'request-row'}
+        onContextMenu={(event) => openFromContextMenu(event, request, onOpenRequestMenu)}
+      >
+        <button className="request-select" onClick={() => onSelectRequest(request)}>
+          <span className={`method-label method-${request.method.toLowerCase()}`}>{request.method}</span>
+          <span>{request.name}</span>
+        </button>
+        <button
+          className="request-more"
+          aria-label={`Actions for ${request.name}`}
+          aria-haspopup="menu"
+          aria-expanded={openRequestMenuId === request.id}
+          title="Request actions"
+          onClick={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect()
+            onOpenRequestMenu(request, bounds.right + 4, bounds.top)
+          }}
+        >
+          <MoreHorizontal size={15} />
+        </button>
+      </div>
+      {request.examples.map((example) => (
+        <button
+          className="request-example"
+          key={example.id}
+          onClick={() => onSelectExample(request, example)}
+        >
+          <ExternalLink size={11} />
+          <span>{example.name}</span>
+        </button>
+      ))}
     </div>
   )
 }
@@ -327,9 +587,17 @@ function openFromContextMenu(
   onOpen(request, event.clientX, event.clientY)
 }
 
-function menuPosition(x: number, y: number): { x: number; y: number } {
+function openCollectionFromContextMenu(
+  event: MouseEvent,
+  collection: RequestCollection,
+  onOpen: (collection: RequestCollection, x: number, y: number) => void
+): void {
+  event.preventDefault()
+  onOpen(collection, event.clientX, event.clientY)
+}
+
+function menuPosition(x: number, y: number, height = 330): { x: number; y: number } {
   const width = 226
-  const height = 330
   const padding = 8
   return {
     x: Math.max(padding, Math.min(x, window.innerWidth - width - padding)),
@@ -346,9 +614,22 @@ function filterCollections(collections: RequestCollection[], query: string): Req
       requests: collection.requests.filter(
         (request) =>
           request.name.toLowerCase().includes(normalized) || request.url.toLowerCase().includes(normalized)
-      )
+      ),
+      folders: collection.folders
+        .map((folder) => ({
+          ...folder,
+          requests: folder.requests.filter(
+            (request) =>
+              request.name.toLowerCase().includes(normalized) ||
+              request.url.toLowerCase().includes(normalized)
+          )
+        }))
+        .filter((folder) => folder.name.toLowerCase().includes(normalized) || folder.requests.length > 0)
     }))
     .filter(
-      (collection) => collection.name.toLowerCase().includes(normalized) || collection.requests.length > 0
+      (collection) =>
+        collection.name.toLowerCase().includes(normalized) ||
+        collection.requests.length > 0 ||
+        collection.folders.length > 0
     )
 }

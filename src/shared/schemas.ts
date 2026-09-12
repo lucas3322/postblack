@@ -58,6 +58,13 @@ export const requestSchema = z.object({
   updatedAt: z.string()
 })
 
+const requestFolderSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  requests: z.array(requestSchema),
+  createdAt: z.string()
+})
+
 const workspaceSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -68,6 +75,7 @@ const workspaceSchema = z.object({
       name: z.string(),
       description: z.string().default(''),
       requests: z.array(requestSchema),
+      folders: z.array(requestFolderSchema).default([]),
       createdAt: z.string()
     })
   ),

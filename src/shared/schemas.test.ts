@@ -38,4 +38,17 @@ describe('state migrations', () => {
 
     expect(migratedState.workspaces[0]?.collections[0]?.description).toBe('')
   })
+
+  it('adds an empty folder list to collections created before folders existed', () => {
+    const currentState = createInitialState()
+    const collection = currentState.workspaces[0]?.collections[0]
+    expect(collection).toBeDefined()
+
+    const { folders: _missingInLegacyCollection, ...legacyCollection } = collection!
+    currentState.workspaces[0]!.collections = [legacyCollection as typeof collection]
+
+    const migratedState = appStateSchema.parse(currentState)
+
+    expect(migratedState.workspaces[0]?.collections[0]?.folders).toEqual([])
+  })
 })
