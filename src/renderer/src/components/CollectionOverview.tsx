@@ -33,7 +33,9 @@ export function CollectionOverview({
       <header className="collection-overview-header">
         <div>
           <span className="collection-eyebrow">Collection</span>
-          <h1>{collection.name}</h1>
+          <h1 onDoubleClick={onRename} title="Double-click to rename collection">
+            {collection.name}
+          </h1>
         </div>
         <div className="collection-overview-actions">
           <button className="button secondary" onClick={onRename}>
@@ -57,7 +59,9 @@ export function CollectionOverview({
           <div className="collection-symbol">
             <FolderOpen size={28} />
           </div>
-          <h2>{collection.name}</h2>
+          <h2 onDoubleClick={onRename} title="Double-click to rename collection">
+            {collection.name}
+          </h2>
           <p>
             {requestCount} {requestCount === 1 ? 'request' : 'requests'} · {collection.folders.length}{' '}
             {collection.folders.length === 1 ? 'folder' : 'folders'} · created{' '}
