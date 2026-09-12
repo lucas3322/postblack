@@ -1089,11 +1089,22 @@ select {
   line-height: 1.65;
 }
 .json-body-editor {
-  position: relative;
   flex: 1;
   min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
   border-radius: 7px;
   background: #080e16;
+}
+.json-body-editor:focus-within {
+  border-color: var(--border-strong);
+}
+.json-body-surface {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 .json-body-editor .body-textarea,
 .json-body-highlight {
@@ -1111,9 +1122,12 @@ select {
   overflow-wrap: break-word;
   scrollbar-gutter: stable;
 }
+.json-body-editor .body-textarea {
+  border: 0;
+}
 .json-body-highlight {
   overflow: auto;
-  border: 1px solid transparent;
+  border: 0;
   pointer-events: none;
 }
 .json-body-highlight::-webkit-scrollbar {
@@ -1132,14 +1146,37 @@ select {
   color: transparent;
   background: rgba(47, 140, 255, 0.35);
 }
-.json-body-size-hint {
-  position: absolute;
-  right: 20px;
-  bottom: 8px;
+.json-body-toolbar {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 3px 10px;
+  border-top: 1px solid var(--border);
   color: #758ba5;
   background: #080e16;
   font-size: 9px;
-  pointer-events: none;
+}
+.json-body-toolbar button {
+  flex: none;
+  padding: 3px 7px;
+  border: 0;
+  border-radius: 4px;
+  color: #80b6ff;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 650;
+}
+.json-body-toolbar button:hover:not(:disabled) {
+  background: #122239;
+}
+.json-format-error {
+  flex: 1;
+  overflow: hidden;
+  color: #ff9298;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .field-label {
   display: flex;

@@ -13,6 +13,7 @@ describe('JSON request body editor', () => {
     expect(html).toContain('json-number')
     expect(html).toContain('aria-label="JSON request body"')
     expect(html).toContain('<textarea')
+    expect(html).toContain('Beautify')
     expect(html).toContain('&quot;cnpj&quot;: &quot;&quot;')
   })
 
