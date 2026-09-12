@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1 — 2026-09-12
+
+- fix: adicionar editor de corpo JSON com suporte a destaque e edição de grandes volumes (38be242)
+
 ## 0.6.0 — 2026-09-12
 
 - feat: implementar visualização e cópia de respostas JSON grandes com suporte a pesquisa (505e8d6)
