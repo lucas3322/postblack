@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 — 2026-09-12
+
+- feat: add CollectionOverview component and integrate folder functionality in Sidebar (b4dcd4f)
+- feat: add description field to RequestCollection and update related schemas (145ceca)
+- feat: add rename functionality for collections and workspaces (59a5a71)
+
 ## 0.2.0 — 2026-09-11
 
 - feat: add request examples functionality and context menu actions (251aa29)
