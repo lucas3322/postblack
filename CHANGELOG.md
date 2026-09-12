@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-09-12
+
+- feat: adicionar funcionalidade de redimensionamento da área de requisições com um divisor (c4b9204)
+- feat: adicionar gerenciamento de abas de requisições e funcionalidade de salvamento de rascunhos (7ae547d)
+- feat: permitir renomear coleções com duplo clique e ajustar estilo de seleção (74a1021)
+- feat: adicionar validação para variáveis de token Bearer e melhorar a interface do editor de requisições (c2ca156)
+
 ## 0.4.0 — 2026-09-12
 
 - feat: adicionar funcionalidade de copiar texto para a área de transferência e melhorar o gerenciamento de estado das coleções (54817ae)
