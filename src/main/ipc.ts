@@ -35,7 +35,7 @@ export function registerIpcHandlers(store: JsonStateStore): void {
     return generateCurl(input.request, input.variables)
   })
   ipcMain.handle(IPC_CHANNELS.copyText, (_event, text: string) => {
-    clipboard.writeText(z.string().max(5_000_000).parse(text))
+    clipboard.writeText(z.string().max(50_000_000).parse(text))
   })
   ipcMain.handle(IPC_CHANNELS.appInfo, () => ({
     version: app.getVersion(),

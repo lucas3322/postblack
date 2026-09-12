@@ -1259,6 +1259,27 @@ select {
   color: #778ba4;
   font-size: 10px;
 }
+.response-actions {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.response-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: #91a9c5;
+  background: transparent;
+  font-size: 10px;
+}
+.response-copy:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
 .status-pill {
   padding: 4px 7px;
   border-radius: 5px;
@@ -1289,6 +1310,61 @@ select {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   tab-size: 2;
+}
+.response-body-virtual {
+  white-space: pre;
+  overflow-wrap: normal;
+  line-height: 18px;
+}
+.response-virtual-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.response-virtual-container[hidden] {
+  display: none;
+}
+.response-search {
+  min-height: 35px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 17px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+}
+.response-search input {
+  width: min(260px, 45%);
+  height: 25px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--panel);
+  font-size: 10px;
+}
+.response-search button {
+  padding: 4px 7px;
+  border: 0;
+  color: var(--blue);
+  background: transparent;
+  font-size: 10px;
+}
+.response-body-virtual code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+.response-virtual-line,
+.response-virtual-spacer {
+  display: block;
+}
+.response-virtual-line {
+  height: 18px;
+}
+.response-virtual-line.match {
+  background: rgba(47, 140, 255, 0.16);
 }
 .json-key {
   color: #6bb7ff;
