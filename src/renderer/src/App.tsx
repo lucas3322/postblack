@@ -49,6 +49,7 @@ import {
   REQUEST_TAB_BAR_HEIGHT,
   requestPaneBounds
 } from './lib/request-pane-size'
+import { responseForRequest } from './lib/response-selection'
 import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
 
 type SaveState = 'saved' | 'saving' | 'error'
@@ -143,6 +144,7 @@ export function App(): React.JSX.Element {
   const workspace = state?.workspaces.find((item) => item.id === state.activeWorkspaceId) ?? null
   const persistedRequest = workspace ? findRequest(workspace, selectedRequestId) : null
   const selectedRequest = selectedRequestId ? (requestDrafts[selectedRequestId] ?? persistedRequest) : null
+  const displayedResponse = responseForRequest(selectedRequestId, response, state?.history ?? [])
   const selectedCollection = workspace?.collections.find((item) => item.id === selectedCollectionId) ?? null
   const movingCollection = workspace?.collections.find((item) => item.id === movingCollectionId) ?? null
   const variables = useMemo(
@@ -560,12 +562,12 @@ export function App(): React.JSX.Element {
   }
 
   const addExample = (request: ApiRequest): void => {
-    if (!response || response.requestId !== request.id) {
+    if (!displayedResponse || displayedResponse.requestId !== request.id) {
       showNotice('Send this request before adding its response as an example.')
       return
     }
 
-    const responseSnapshot = response
+    const responseSnapshot = displayedResponse
     setTextDialog({
       title: 'Add example',
       label: 'Example name',
@@ -1034,7 +1036,7 @@ export function App(): React.JSX.Element {
                 }}
                 onReset={() => setRequestPaneRatio(DEFAULT_REQUEST_PANE_RATIO)}
               />
-              <ResponseViewer response={response} sending={sending} />
+              <ResponseViewer response={displayedResponse} sending={sending} />
             </>
           ) : (
             <EmptyWorkspace
