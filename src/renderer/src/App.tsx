@@ -28,7 +28,7 @@ import {
   type ResponseSnapshot,
   type Workspace
 } from '../../shared/domain'
-import { resolveVariables, scopedVariables } from '../../shared/variables'
+import { resolveVariables, scopedVariableDetails, scopedVariables } from '../../shared/variables'
 import { KeyValueEditor } from './components/KeyValueEditor'
 import { BrandLogo } from './components/BrandLogo'
 import { CollectionOverview } from './components/CollectionOverview'
@@ -1008,6 +1008,7 @@ export function App(): React.JSX.Element {
                 saveState={saveState}
                 dirty={Boolean(selectedRequestId && requestDrafts[selectedRequestId])}
                 variableNames={Object.keys(variables).sort((a, b) => a.localeCompare(b))}
+                variableDetails={scopedVariableDetails(state?.globalVariables ?? [], workspace)}
                 activeEnvironmentName={
                   workspace.environments.find((item) => item.id === workspace.activeEnvironmentId)?.name ??
                   null

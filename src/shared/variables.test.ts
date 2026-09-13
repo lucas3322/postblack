@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { createKeyValue, createWorkspace } from './domain'
-import { findUnresolvedVariables, resolveVariables, scopedVariables } from './variables'
+import {
+  findUnresolvedVariables,
+  resolveVariables,
+  scopedVariables,
+  splitVariableReferences
+} from './variables'
 
 describe('variables', () => {
   it('resolves known values while preserving unresolved placeholders', () => {
@@ -24,5 +29,17 @@ describe('variables', () => {
       base_url: 'http://localhost:3000',
       organization: 'postblack'
     })
+  })
+
+  it('splits URL references without changing the underlying URL text', () => {
+    const url = '{{base_url}}/users/{{ id }}?search={{missing}}'
+    const segments = splitVariableReferences(url)
+
+    expect(segments.map((part) => part.value).join('')).toBe(url)
+    expect(segments.filter((part) => part.kind === 'variable').map((part) => part.name)).toEqual([
+      'base_url',
+      'id',
+      'missing'
+    ])
   })
 })

@@ -2,8 +2,11 @@ import { Check, ChevronDown, Code2, Eye, EyeOff, Save, Send, Variable } from 'lu
 import { useState } from 'react'
 import { isCurlCommand } from '../../../shared/curl'
 import { HTTP_METHODS, type ApiRequest, type RequestAuth } from '../../../shared/domain'
+import type { VariableDetail } from '../../../shared/variables'
 import { JsonBodyEditor } from './JsonBodyEditor'
+import { AuthValueInput } from './AuthValueInput'
 import { KeyValueEditor } from './KeyValueEditor'
+import { UrlEditor } from './UrlEditor'
 
 type RequestTab = 'params' | 'headers' | 'body' | 'auth'
 
@@ -13,6 +16,7 @@ interface RequestEditorProps {
   saveState: 'saved' | 'saving' | 'error'
   dirty: boolean
   variableNames: string[]
+  variableDetails?: Record<string, VariableDetail>
   activeEnvironmentName: string | null
   onChange: (request: ApiRequest) => void
   onSave: () => void
@@ -28,6 +32,7 @@ export function RequestEditor({
   saveState,
   dirty,
   variableNames,
+  variableDetails = {},
   activeEnvironmentName,
   onChange,
   onSave,
@@ -86,17 +91,17 @@ export function RequestEditor({
           </select>
           <ChevronDown size={14} />
         </div>
-        <input
-          className="url-input code"
+        <UrlEditor
+          key={request.id}
           value={request.url}
-          onChange={(event) => patch({ url: event.target.value })}
+          variableNames={variableNames}
+          variableDetails={variableDetails}
+          importingCurl={importingCurl}
+          sending={sending}
+          onChange={(url) => patch({ url })}
           onPaste={handleUrlPaste}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !sending) onSend()
-          }}
-          placeholder={importingCurl ? 'Importing cURL…' : 'Paste a URL or complete cURL command'}
-          disabled={importingCurl}
-          spellCheck={false}
+          onSend={onSend}
+          onOpenVariables={onOpenVariables}
         />
         <button
           className="button primary send-button"
@@ -128,6 +133,9 @@ export function RequestEditor({
             rows={request.params}
             onChange={(params) => patch({ params })}
             keyPlaceholder="Parameter"
+            variableNames={variableNames}
+            variableDetails={variableDetails}
+            onOpenVariables={onOpenVariables}
           />
         )}
         {tab === 'headers' && (
@@ -135,14 +143,18 @@ export function RequestEditor({
             rows={request.headers}
             onChange={(headers) => patch({ headers })}
             keyPlaceholder="Header"
+            variableNames={variableNames}
+            variableDetails={variableDetails}
+            onOpenVariables={onOpenVariables}
           />
         )}
-        {tab === 'body' && <BodyEditor request={request} onChange={patch} />}
+        {tab === 'body' && <BodyEditor request={request} variableDetails={variableDetails} onChange={patch} />}
         {tab === 'auth' && (
           <AuthEditor
             key={request.id}
             auth={request.auth}
             variableNames={variableNames}
+            variableDetails={variableDetails}
             activeEnvironmentName={activeEnvironmentName}
             onOpenVariables={onOpenVariables}
             onChange={(auth) => patch({ auth })}
@@ -174,9 +186,11 @@ function Tab({
 
 function BodyEditor({
   request,
+  variableDetails,
   onChange
 }: {
   request: ApiRequest
+  variableDetails: Record<string, VariableDetail>
   onChange: (patch: Partial<ApiRequest>) => void
 }): React.JSX.Element {
   return (
@@ -196,16 +210,16 @@ function BodyEditor({
       {request.body.mode === 'json' && (
         <JsonBodyEditor
           value={request.body.content}
+          variableDetails={variableDetails}
           onChange={(content) => onChange({ body: { ...request.body, content } })}
         />
       )}
       {request.body.mode !== 'none' && request.body.mode !== 'json' && (
-        <textarea
-          className="code body-textarea"
+        <JsonBodyEditor
+          syntax="plain"
           value={request.body.content}
-          onChange={(event) => onChange({ body: { ...request.body, content: event.target.value } })}
-          placeholder="Request body"
-          spellCheck={false}
+          variableDetails={variableDetails}
+          onChange={(content) => onChange({ body: { ...request.body, content } })}
         />
       )}
     </div>
@@ -215,12 +229,14 @@ function BodyEditor({
 function AuthEditor({
   auth,
   variableNames,
+  variableDetails,
   activeEnvironmentName,
   onOpenVariables,
   onChange
 }: {
   auth: RequestAuth
   variableNames: string[]
+  variableDetails: Record<string, VariableDetail>
   activeEnvironmentName: string | null
   onOpenVariables: () => void
   onChange: (auth: RequestAuth) => void
@@ -250,14 +266,14 @@ function AuthEditor({
             Token
           </label>
           <div className="bearer-input">
-            <input
+            <AuthValueInput
               id="bearer-token"
-              type={showToken || auth.token.trimStart().startsWith('{{') ? 'text' : 'password'}
               value={auth.token}
-              onChange={(event) => patch({ token: event.target.value })}
+              onChange={(token) => patch({ token })}
               placeholder="{{access_token}} or paste a token"
-              autoComplete="off"
-              spellCheck={false}
+              secret
+              showRaw={showToken}
+              variableDetails={variableDetails}
             />
             <button
               type="button"
@@ -297,14 +313,15 @@ function AuthEditor({
         <div className="form-grid">
           <label className="field-label">
             Username
-            <input value={auth.username} onChange={(event) => patch({ username: event.target.value })} />
+            <AuthValueInput value={auth.username} variableDetails={variableDetails} onChange={(username) => patch({ username })} />
           </label>
           <label className="field-label">
             Password
-            <input
-              type="password"
+            <AuthValueInput
+              secret
               value={auth.password}
-              onChange={(event) => patch({ password: event.target.value })}
+              variableDetails={variableDetails}
+              onChange={(password) => patch({ password })}
             />
           </label>
         </div>
@@ -313,14 +330,15 @@ function AuthEditor({
         <div className="form-grid three">
           <label className="field-label">
             Key
-            <input value={auth.apiKeyName} onChange={(event) => patch({ apiKeyName: event.target.value })} />
+            <AuthValueInput value={auth.apiKeyName} variableDetails={variableDetails} onChange={(apiKeyName) => patch({ apiKeyName })} />
           </label>
           <label className="field-label">
             Value
-            <input
-              type="password"
+            <AuthValueInput
+              secret
               value={auth.apiKeyValue}
-              onChange={(event) => patch({ apiKeyValue: event.target.value })}
+              variableDetails={variableDetails}
+              onChange={(apiKeyValue) => patch({ apiKeyValue })}
             />
           </label>
           <label className="field-label">

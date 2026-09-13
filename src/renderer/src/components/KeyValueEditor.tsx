@@ -1,5 +1,7 @@
 import { Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import { createKeyValue, type KeyValue } from '../../../shared/domain'
+import type { VariableDetail } from '../../../shared/variables'
+import { VariableValueInput } from './VariableValueInput'
 
 interface KeyValueEditorProps {
   rows: KeyValue[]
@@ -7,6 +9,9 @@ interface KeyValueEditorProps {
   secretValues?: boolean
   keyPlaceholder?: string
   valuePlaceholder?: string
+  variableNames?: string[]
+  variableDetails?: Record<string, VariableDetail>
+  onOpenVariables?: () => void
 }
 
 export function KeyValueEditor({
@@ -14,7 +19,10 @@ export function KeyValueEditor({
   onChange,
   secretValues = false,
   keyPlaceholder = 'Key',
-  valuePlaceholder = 'Value'
+  valuePlaceholder = 'Value',
+  variableNames,
+  variableDetails,
+  onOpenVariables
 }: KeyValueEditorProps): React.JSX.Element {
   const update = (id: string, patch: Partial<KeyValue>): void => {
     onChange(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)))
@@ -41,23 +49,34 @@ export function KeyValueEditor({
             onChange={(event) => update(row.id, { key: event.target.value })}
             placeholder={keyPlaceholder}
           />
-          <div className="secret-input">
-            <input
-              type={secretValues && row.secret !== false ? 'password' : 'text'}
+          {variableNames && !secretValues ? (
+            <VariableValueInput
               value={row.value}
-              onChange={(event) => update(row.id, { value: event.target.value })}
               placeholder={valuePlaceholder}
+              variableNames={variableNames}
+              variableDetails={variableDetails}
+              onChange={(value) => update(row.id, { value })}
+              onOpenVariables={onOpenVariables}
             />
-            {secretValues && (
-              <button
-                className="icon-button"
-                onClick={() => update(row.id, { secret: row.secret === false })}
-                title="Toggle visibility"
-              >
-                {row.secret === false ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            )}
-          </div>
+          ) : (
+            <div className="secret-input">
+              <input
+                type={secretValues && row.secret !== false ? 'password' : 'text'}
+                value={row.value}
+                onChange={(event) => update(row.id, { value: event.target.value })}
+                placeholder={valuePlaceholder}
+              />
+              {secretValues && (
+                <button
+                  className="icon-button"
+                  onClick={() => update(row.id, { secret: row.secret === false })}
+                  title="Toggle visibility"
+                >
+                  {row.secret === false ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              )}
+            </div>
+          )}
           <button
             className="icon-button danger"
             onClick={() => onChange(rows.filter((item) => item.id !== row.id))}

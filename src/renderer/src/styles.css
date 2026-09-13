@@ -901,6 +901,8 @@ select {
   color: var(--orange);
 }
 .url-bar {
+  position: relative;
+  z-index: 5;
   display: flex;
   gap: 8px;
   padding: 9px 16px;
@@ -944,6 +946,226 @@ select {
   position: relative;
   border-color: #3477b9;
   box-shadow: 0 0 0 2px rgba(47, 140, 255, 0.08);
+}
+.url-editor {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  margin-left: -8px;
+  overflow: visible;
+  border: 1px solid var(--border-strong);
+  border-radius: 0 7px 7px 0;
+  background: #080e17;
+}
+.url-editor:focus-within {
+  border-color: #3477b9;
+  box-shadow: 0 0 0 2px rgba(47, 140, 255, 0.08);
+}
+.url-editor .url-input,
+.url-highlight {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+.url-editor .url-input {
+  position: relative;
+  color: transparent;
+  caret-color: #d8e3f1;
+}
+.url-editor .url-input:focus {
+  border: 0;
+  box-shadow: none;
+}
+.url-editor .url-input::placeholder {
+  color: #677b94;
+}
+.url-editor .url-input::selection {
+  color: transparent;
+  background: rgba(47, 140, 255, 0.35);
+}
+.url-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  color: #d8e3f1;
+  line-height: 32px;
+  white-space: pre;
+  pointer-events: none;
+}
+.url-variable-known {
+  color: #56c6e4;
+}
+.url-variable-missing {
+  color: #ffba70;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.variable-reference {
+  position: relative;
+  pointer-events: auto;
+  cursor: help;
+}
+.variable-reference:hover {
+  background: rgba(86, 198, 228, 0.12);
+  border-radius: 2px;
+}
+.variable-peek {
+  position: fixed;
+  z-index: 1000;
+  width: min(280px, calc(100vw - 16px));
+  padding: 10px;
+  border: 1px solid #345878;
+  border-radius: 8px;
+  color: #dbe8f6;
+  background: #101b2a;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: auto;
+}
+.variable-peek-title,
+.variable-peek-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.variable-peek-title strong {
+  overflow: hidden;
+  color: #7bd8f0;
+  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.variable-peek-title span {
+  flex: none;
+  color: #8397ad;
+  text-transform: capitalize;
+}
+.variable-peek-value {
+  margin-top: 8px;
+  padding: 6px 7px;
+  border: 1px solid #2a4059;
+  border-radius: 5px;
+  background: #0a121e;
+}
+.variable-peek-value code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #dce9f8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: text;
+}
+.variable-peek-value button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: #8bbdf0;
+  background: transparent;
+  cursor: pointer;
+}
+.variable-peek-value button:hover {
+  background: #19314b;
+}
+.variable-peek p {
+  margin: 8px 0 0;
+  color: #ffba70;
+}
+.url-variable-picker {
+  position: relative;
+  flex: none;
+  width: 96px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: #0a111b;
+}
+.url-variable-picker svg {
+  position: absolute;
+  left: 8px;
+  color: #82a9d8;
+  pointer-events: none;
+}
+.url-variable-picker svg:last-child {
+  right: 6px;
+  left: auto;
+}
+.url-variable-picker select {
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  padding: 0 18px 0 26px;
+  border: 0;
+  background: transparent;
+  font-size: 10px;
+  cursor: pointer;
+}
+.url-variable-picker:hover {
+  border-color: #3477b9;
+}
+.variable-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  width: min(320px, 100%);
+  max-height: 205px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid #31547a;
+  border-radius: 7px;
+  background: #101a28;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+.variable-suggestions button {
+  width: 100%;
+  min-height: 29px;
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 4px;
+  color: #a6d6ef;
+  background: transparent;
+  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+  font-size: 10px;
+  text-align: left;
+}
+.variable-suggestions button:hover,
+.variable-suggestions button.active {
+  color: #e0f2ff;
+  background: #1a3551;
+}
+.variable-suggestions-empty {
+  display: block;
+  padding: 7px 8px;
+  color: #8496ab;
+  font-size: 10px;
+}
+.variable-suggestions .variable-suggestions-manage {
+  margin-top: 3px;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  color: #85b6f2;
+  font-family: inherit;
 }
 .send-button {
   height: 34px;
@@ -1013,6 +1235,10 @@ select {
   min-height: 35px;
   border-top: 1px solid var(--border);
 }
+.kv-row:focus-within {
+  position: relative;
+  z-index: 4;
+}
 .kv-row > input:not([type='checkbox']),
 .kv-row .secret-input {
   height: 35px;
@@ -1029,6 +1255,31 @@ select {
 .secret-input {
   position: relative;
   display: flex;
+}
+.variable-value-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  padding: 0 35px 0 10px;
+  color: #dce6f5;
+  font-size: 12px;
+  line-height: 35px;
+  white-space: pre;
+  pointer-events: none;
+}
+.variable-value-editor .variable-value-input {
+  position: relative;
+  z-index: 1;
+  color: transparent;
+  caret-color: #dce6f5;
+}
+.variable-value-input::placeholder {
+  color: #667992;
+}
+.variable-value-input::selection {
+  color: transparent;
+  background: rgba(47, 140, 255, 0.35);
 }
 .secret-input input {
   min-width: 0;
@@ -1126,6 +1377,7 @@ select {
   border: 0;
 }
 .json-body-highlight {
+  z-index: 2;
   overflow: auto;
   border: 0;
   pointer-events: none;
@@ -1238,6 +1490,40 @@ select {
     12px 'JetBrains Mono Variable',
     ui-monospace,
     monospace;
+}
+.auth-value-input {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.auth-value-highlight {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  padding: 0 10px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 450;
+  line-height: 34px;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: pre;
+  pointer-events: none;
+}
+.bearer-input .auth-value-highlight {
+  padding: 0 12px;
+  font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+  line-height: 38px;
+}
+.auth-value-input input.auth-variable-input {
+  color: transparent;
+  caret-color: #dce6f5;
+}
+.auth-value-input input.auth-variable-input::selection {
+  color: transparent;
+  background: rgba(47, 140, 255, 0.35);
 }
 .bearer-input .icon-button {
   flex: none;
