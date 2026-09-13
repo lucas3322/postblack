@@ -1,11 +1,12 @@
-import { Check, ChevronDown, Code2, Eye, EyeOff, Save, Send, Variable } from 'lucide-react'
+import { Check, Code2, Eye, EyeOff, Save, Send, Variable } from 'lucide-react'
 import { useState } from 'react'
 import { isCurlCommand } from '../../../shared/curl'
-import { HTTP_METHODS, type ApiRequest, type RequestAuth } from '../../../shared/domain'
+import { type ApiRequest, type RequestAuth } from '../../../shared/domain'
 import type { VariableDetail } from '../../../shared/variables'
 import { JsonBodyEditor } from './JsonBodyEditor'
 import { AuthValueInput } from './AuthValueInput'
 import { KeyValueEditor } from './KeyValueEditor'
+import { MethodSelect } from './MethodSelect'
 import { UrlEditor } from './UrlEditor'
 
 type RequestTab = 'params' | 'headers' | 'body' | 'auth'
@@ -80,17 +81,7 @@ export function RequestEditor({
         </button>
       </div>
       <div className="url-bar">
-        <div className={`method-select method-${request.method.toLowerCase()}`}>
-          <select
-            value={request.method}
-            onChange={(event) => patch({ method: event.target.value as ApiRequest['method'] })}
-          >
-            {HTTP_METHODS.map((method) => (
-              <option key={method}>{method}</option>
-            ))}
-          </select>
-          <ChevronDown size={14} />
-        </div>
+        <MethodSelect value={request.method} onChange={(method) => patch({ method })} />
         <UrlEditor
           key={request.id}
           value={request.url}

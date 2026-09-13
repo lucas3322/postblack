@@ -916,20 +916,63 @@ select {
   border-radius: 7px 0 0 7px;
   background: #0a111b;
 }
-.method-select select {
+.method-trigger {
   width: 100%;
   height: 100%;
-  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 27px 0 12px;
   border: 0;
+  border-radius: inherit;
+  color: inherit;
   background: transparent;
   font-size: 11px;
   font-weight: 800;
+  cursor: pointer;
 }
-.method-select svg {
+.method-trigger svg {
   position: absolute;
   right: 9px;
   pointer-events: none;
+}
+.method-select:focus-within {
+  border-color: #3477b9;
+}
+.method-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 150px;
+  padding: 5px;
+  border: 1px solid #3b4c62;
+  border-radius: 9px;
+  background: #1b222c;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.42);
+}
+.method-menu-option {
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.method-menu-option:hover,
+.method-menu-option:focus-visible {
+  outline: none;
+  background: #293b50;
+}
+.method-menu-option.selected {
+  background: #1c3d6c;
 }
 .url-input {
   min-width: 0;
