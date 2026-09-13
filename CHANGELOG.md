@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0 — 2026-09-13
+
+- feat: adicionar componente MethodSelect e estilização correspondente (893cdcd)
+- feat: adicionar suporte para seleção de texto na resposta e testes correspondentes (bc293d9)
+- feat: adicionar função de seleção de resposta e testes correspondentes (8772f82)
+- feat: adicionar testes para AuthValueInput e ajustes de formatação em JsonBodyEditor e VariableReference (7334046)
+- feat: adicionar detalhes de variáveis em editores JSON e URL, e testes correspondentes (515223b)
+- feat: add URL variable editor with autocomplete and variable management (e45f104)
+
 ## 0.6.2 — 2026-09-12
 
 - fix: adicionar funcionalidade de formatação JSON e testes correspondentes (130309f)
