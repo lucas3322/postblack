@@ -1,6 +1,7 @@
 import { Braces, Check, Clock3, Copy, Database, FileJson2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ResponseSnapshot } from '../../../shared/domain'
+import { selectedResponseText } from '../lib/copy-selection'
 import { tokenizeJson } from '../lib/json-highlighter'
 import {
   findNextMatch,
@@ -21,12 +22,23 @@ export function ResponseViewer({
 }): React.JSX.Element {
   const [tab, setTab] = useState<'body' | 'headers'>('body')
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
+  const responseRef = useRef<HTMLElement>(null)
+  const selectedTextRef = useRef<string | null>(null)
   const formattedBody = useMemo(() => prepareResponseBody(response?.body ?? ''), [response?.body])
+  const highlightedResponseText = (): string | null => {
+    const regions =
+      responseRef.current?.querySelectorAll<HTMLElement>(
+        '.response-body:not(.response-body-virtual):not([hidden]), .response-virtual-container:not([hidden]) .response-body-virtual, .response-headers'
+      ) ?? []
+    return selectedResponseText(window.getSelection(), regions)
+  }
 
   const copyBody = async (): Promise<void> => {
     if (!response) return
     try {
-      await window.postblack.clipboard.copyText(response.body)
+      const selectedText = selectedTextRef.current ?? highlightedResponseText()
+      selectedTextRef.current = null
+      await window.postblack.clipboard.copyText(selectedText ?? response.body)
       setCopyState('copied')
       window.setTimeout(() => setCopyState('idle'), 2000)
     } catch {
@@ -51,7 +63,7 @@ export function ResponseViewer({
     )
 
   return (
-    <section className="response">
+    <section ref={responseRef} className="response">
       <header className="response-header">
         <div>
           <span className={`status-pill ${response.status >= 400 || response.error ? 'bad' : ''}`}>
@@ -75,8 +87,11 @@ export function ResponseViewer({
           </nav>
           <button
             className="response-copy"
+            onPointerDown={() => {
+              selectedTextRef.current = highlightedResponseText()
+            }}
             onClick={() => void copyBody()}
-            title="Copy complete response body"
+            title="Copy selected response text, or the complete body if nothing is selected"
           >
             {copyState === 'copied' ? <Check size={14} /> : <Copy size={14} />}
             <span>

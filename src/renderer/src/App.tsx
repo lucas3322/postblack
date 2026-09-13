@@ -49,6 +49,7 @@ import {
   REQUEST_TAB_BAR_HEIGHT,
   requestPaneBounds
 } from './lib/request-pane-size'
+import { hasTextSelection } from './lib/copy-selection'
 import { responseForRequest } from './lib/response-selection'
 import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
 
@@ -825,6 +826,7 @@ export function App(): React.JSX.Element {
         event.preventDefault()
         renameRequest(selectedRequest)
       } else if (selectedRequest && commandPressed && key === 'c') {
+        if (hasTextSelection(window.getSelection())) return
         event.preventDefault()
         void copyRequest(selectedRequest)
       } else if (selectedRequest && commandPressed && key === 'd') {
