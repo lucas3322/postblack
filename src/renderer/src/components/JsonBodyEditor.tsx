@@ -23,9 +23,11 @@ export function JsonBodyEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [formatError, setFormatError] = useState<string | null>(null)
   const highlighted = value.length <= MAX_HIGHLIGHTED_LENGTH
-  const tokens = useMemo(() => (
-    highlighted ? syntax === 'json' ? tokenizeJson(value) : [{ kind: 'plain' as const, value }] : []
-  ), [highlighted, syntax, value])
+  const tokens = useMemo(
+    () =>
+      highlighted ? (syntax === 'json' ? tokenizeJson(value) : [{ kind: 'plain' as const, value }]) : [],
+    [highlighted, syntax, value]
+  )
 
   const syncScroll = (textarea: HTMLTextAreaElement): void => {
     if (!highlightRef.current) return
@@ -68,7 +70,9 @@ export function JsonBodyEditor({
                         label={segment.value}
                         detail={variableDetails[segment.name]}
                         onActivate={() => {
-                          const tokenOffset = tokens.slice(0, tokenIndex).reduce((sum, item) => sum + item.value.length, 0)
+                          const tokenOffset = tokens
+                            .slice(0, tokenIndex)
+                            .reduce((sum, item) => sum + item.value.length, 0)
                           const segmentOffset = splitVariableReferences(token.value)
                             .slice(0, segmentIndex + 1)
                             .reduce((sum, item) => sum + item.value.length, 0)
@@ -77,7 +81,9 @@ export function JsonBodyEditor({
                           textareaRef.current?.setSelectionRange(caret, caret)
                         }}
                       />
-                    ) : segment.value
+                    ) : (
+                      segment.value
+                    )
                   )}
                 </span>
               ))}
@@ -99,23 +105,25 @@ export function JsonBodyEditor({
           spellCheck={false}
         />
       </div>
-      {syntax === 'json' && <div className="json-body-toolbar">
-        {formatError ? (
-          <span className="json-format-error" role="alert" title={formatError}>
-            {formatError}
-          </span>
-        ) : !highlighted ? (
-          <span>Highlighting paused for a large body to keep editing fast.</span>
-        ) : null}
-        <button
-          type="button"
-          onClick={beautify}
-          disabled={!value.trim()}
-          title="Format JSON with two-space indentation"
-        >
-          Beautify
-        </button>
-      </div>}
+      {syntax === 'json' && (
+        <div className="json-body-toolbar">
+          {formatError ? (
+            <span className="json-format-error" role="alert" title={formatError}>
+              {formatError}
+            </span>
+          ) : !highlighted ? (
+            <span>Highlighting paused for a large body to keep editing fast.</span>
+          ) : null}
+          <button
+            type="button"
+            onClick={beautify}
+            disabled={!value.trim()}
+            title="Format JSON with two-space indentation"
+          >
+            Beautify
+          </button>
+        </div>
+      )}
     </div>
   )
 }

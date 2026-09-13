@@ -25,7 +25,8 @@ export function AuthValueInput({
   const highlightRef = useRef<HTMLDivElement>(null)
   const segments = splitVariableReferences(value)
   const completeReference = segments.length === 1 && segments[0].kind === 'variable'
-  const showReference = segments.some((segment) => segment.kind === 'variable') && (!secret || completeReference)
+  const showReference =
+    segments.some((segment) => segment.kind === 'variable') && (!secret || completeReference)
 
   return (
     <div className="auth-value-input">
@@ -44,7 +45,9 @@ export function AuthValueInput({
                   inputRef.current?.setSelectionRange(caret, caret)
                 }}
               />
-            ) : segment.value
+            ) : (
+              segment.value
+            )
           )}
         </div>
       )}

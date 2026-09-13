@@ -148,7 +148,9 @@ export function RequestEditor({
             onOpenVariables={onOpenVariables}
           />
         )}
-        {tab === 'body' && <BodyEditor request={request} variableDetails={variableDetails} onChange={patch} />}
+        {tab === 'body' && (
+          <BodyEditor request={request} variableDetails={variableDetails} onChange={patch} />
+        )}
         {tab === 'auth' && (
           <AuthEditor
             key={request.id}
@@ -313,7 +315,11 @@ function AuthEditor({
         <div className="form-grid">
           <label className="field-label">
             Username
-            <AuthValueInput value={auth.username} variableDetails={variableDetails} onChange={(username) => patch({ username })} />
+            <AuthValueInput
+              value={auth.username}
+              variableDetails={variableDetails}
+              onChange={(username) => patch({ username })}
+            />
           </label>
           <label className="field-label">
             Password
@@ -330,7 +336,11 @@ function AuthEditor({
         <div className="form-grid three">
           <label className="field-label">
             Key
-            <AuthValueInput value={auth.apiKeyName} variableDetails={variableDetails} onChange={(apiKeyName) => patch({ apiKeyName })} />
+            <AuthValueInput
+              value={auth.apiKeyName}
+              variableDetails={variableDetails}
+              onChange={(apiKeyName) => patch({ apiKeyName })}
+            />
           </label>
           <label className="field-label">
             Value

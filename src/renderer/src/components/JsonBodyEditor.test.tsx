@@ -38,7 +38,7 @@ describe('JSON request body editor', () => {
 
     expect(html).toContain('url-variable-known')
     expect(html).toContain('url-variable-missing')
-    expect(html).toContain('value')
+    expect(html).toContain('<textarea')
     expect(html).toContain('{{base_url}}')
   })
 

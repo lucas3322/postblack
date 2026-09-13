@@ -21,9 +21,12 @@ export function VariableReference({
   const [copied, setCopied] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current)
-  }, [])
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current)
+    },
+    []
+  )
 
   const cancelClose = (): void => {
     if (closeTimer.current) clearTimeout(closeTimer.current)
@@ -70,41 +73,48 @@ export function VariableReference({
       }}
     >
       {label}
-      {position && typeof document !== 'undefined' && createPortal(
-        <div
-          className="variable-peek"
-          style={{ top: position.top, left: position.left }}
-          onMouseEnter={cancelClose}
-          onMouseLeave={scheduleClose}
-          role="status"
-        >
-          <div className="variable-peek-title">
-            <strong>{`{{${name}}}`}</strong>
-            <span>{detail?.scope ?? 'undefined'}</span>
-          </div>
-          {detail ? (
-            <div className="variable-peek-value">
-              <code>{detail.secret && !revealed ? '••••••••' : detail.value || '(empty)'}</code>
-              {detail.secret && (
+      {position &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="variable-peek"
+            style={{ top: position.top, left: position.left }}
+            onMouseEnter={cancelClose}
+            onMouseLeave={scheduleClose}
+            role="status"
+          >
+            <div className="variable-peek-title">
+              <strong>{`{{${name}}}`}</strong>
+              <span>{detail?.scope ?? 'undefined'}</span>
+            </div>
+            {detail ? (
+              <div className="variable-peek-value">
+                <code>{detail.secret && !revealed ? '••••••••' : detail.value || '(empty)'}</code>
+                {detail.secret && (
+                  <button
+                    type="button"
+                    onClick={() => setRevealed((current) => !current)}
+                    aria-label={revealed ? 'Hide variable value' : 'Show variable value'}
+                    title={revealed ? 'Hide value' : 'Show value'}
+                  >
+                    {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => setRevealed((current) => !current)}
-                  aria-label={revealed ? 'Hide variable value' : 'Show variable value'}
-                  title={revealed ? 'Hide value' : 'Show value'}
+                  onClick={() => void copy()}
+                  aria-label="Copy variable value"
+                  title="Copy value"
                 >
-                  {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
                 </button>
-              )}
-              <button type="button" onClick={() => void copy()} aria-label="Copy variable value" title="Copy value">
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-            </div>
-          ) : (
-            <p>Variable not found in the active environment, workspace or globals.</p>
-          )}
-        </div>,
-        document.body
-      )}
+              </div>
+            ) : (
+              <p>Variable not found in the active environment, workspace or globals.</p>
+            )}
+          </div>,
+          document.body
+        )}
     </span>
   )
 }
