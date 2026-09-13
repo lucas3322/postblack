@@ -25,4 +25,35 @@ describe('JSON request body editor', () => {
     expect(html).toContain('Highlighting paused for a large body')
     expect(html).not.toContain('json-key')
   })
+
+  it('highlights known and missing references inside a JSON string without changing the body', () => {
+    const source = '{"url":"{{base_url}}/users/{{missing}}"}'
+    const html = renderToString(
+      <JsonBodyEditor
+        value={source}
+        variableDetails={{ base_url: { value: 'https://example.com', secret: false, scope: 'global' } }}
+        onChange={() => undefined}
+      />
+    )
+
+    expect(html).toContain('url-variable-known')
+    expect(html).toContain('url-variable-missing')
+    expect(html).toContain('value')
+    expect(html).toContain('{{base_url}}')
+  })
+
+  it('highlights references in plain text mode and does not show JSON formatting controls', () => {
+    const html = renderToString(
+      <JsonBodyEditor
+        syntax="plain"
+        value={'token={{token}}'}
+        variableDetails={{ token: { value: 'secret', secret: true, scope: 'workspace' } }}
+        onChange={() => undefined}
+      />
+    )
+
+    expect(html).toContain('url-variable-known')
+    expect(html).not.toContain('Beautify')
+    expect(html).toContain('aria-label="Request body"')
+  })
 })

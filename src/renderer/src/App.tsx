@@ -149,6 +149,10 @@ export function App(): React.JSX.Element {
     () => (workspace ? scopedVariables(state?.globalVariables ?? [], workspace) : {}),
     [state?.globalVariables, workspace]
   )
+  const variableDetails = useMemo(
+    () => (workspace ? scopedVariableDetails(state?.globalVariables ?? [], workspace) : {}),
+    [state?.globalVariables, workspace]
+  )
   const dirtyRequestIds = new Set(Object.keys(requestDrafts))
   const workspaceTabs = openTabs.filter(
     (tab) => tab.workspaceId === workspace?.id && workspace && findRequest(workspace, tab.requestId)
@@ -1008,7 +1012,7 @@ export function App(): React.JSX.Element {
                 saveState={saveState}
                 dirty={Boolean(selectedRequestId && requestDrafts[selectedRequestId])}
                 variableNames={Object.keys(variables).sort((a, b) => a.localeCompare(b))}
-                variableDetails={scopedVariableDetails(state?.globalVariables ?? [], workspace)}
+                variableDetails={variableDetails}
                 activeEnvironmentName={
                   workspace.environments.find((item) => item.id === workspace.activeEnvironmentId)?.name ??
                   null

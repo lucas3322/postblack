@@ -9,6 +9,7 @@ describe('URL editor', () => {
       <UrlEditor
         value={url}
         variableNames={['base_url']}
+        variableDetails={{ base_url: { value: 'https://example.com', secret: false, scope: 'workspace' } }}
         importingCurl={false}
         sending={false}
         onChange={() => undefined}

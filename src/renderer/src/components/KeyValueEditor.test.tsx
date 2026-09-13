@@ -12,6 +12,7 @@ describe('request key-value editor', () => {
         onChange={() => undefined}
         keyPlaceholder="Header"
         variableNames={['application_key']}
+        variableDetails={{ application_key: { value: 'secret', secret: true, scope: 'environment' } }}
       />
     )
 

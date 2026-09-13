@@ -3,6 +3,7 @@ import { createKeyValue, createWorkspace } from './domain'
 import {
   findUnresolvedVariables,
   resolveVariables,
+  scopedVariableDetails,
   scopedVariables,
   splitVariableReferences
 } from './variables'
@@ -28,6 +29,10 @@ describe('variables', () => {
     expect(scopedVariables(globals, workspace)).toMatchObject({
       base_url: 'http://localhost:3000',
       organization: 'postblack'
+    })
+    expect(scopedVariableDetails(globals, workspace)).toMatchObject({
+      base_url: { value: 'http://localhost:3000', secret: true, scope: 'environment' },
+      organization: { value: 'postblack', secret: true, scope: 'global' }
     })
   })
 
