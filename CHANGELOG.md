@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1 — 2026-09-14
+
+- fix: resolvendo bug de adicionar rotas na collection (ada157e)
+
 ## 0.8.0 — 2026-09-14
 
 - feat: enhance response handling with cookie support and visualization features (e46f048)
