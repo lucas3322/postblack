@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0 — 2026-09-14
+
+- feat: enhance response handling with cookie support and visualization features (e46f048)
+
 ## 0.7.0 — 2026-09-13
 
 - feat: adicionar componente MethodSelect e estilização correspondente (893cdcd)
