@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createKeyValue, createRequest } from '../shared/domain'
+import { responseCookies } from '../renderer/src/lib/response-cookies'
 import { executeHttpRequest } from './http-executor'
 
 describe('HTTP executor', () => {
@@ -13,6 +14,7 @@ describe('HTTP executor', () => {
       request.on('data', (chunk: Buffer) => chunks.push(chunk))
       request.on('end', () => {
         response.setHeader('Content-Type', 'application/json')
+        response.setHeader('Set-Cookie', ['session=abc; HttpOnly; Path=/', 'theme=dark; Path=/'])
         response.end(
           JSON.stringify({
             method: request.method,
@@ -50,6 +52,7 @@ describe('HTTP executor', () => {
     expect(result.status).toBe(200)
     expect(result.contentType).toContain('application/json')
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
+    expect(responseCookies(result.headers).map((cookie) => cookie.name)).toEqual(['session', 'theme'])
     expect(body.method).toBe('POST')
     expect(body.url).toBe('/resources?page=2')
     expect(body.authorization).toBe('Bearer secret-token')

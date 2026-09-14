@@ -1,8 +1,12 @@
-import { Braces, Check, Clock3, Copy, Database, FileJson2 } from 'lucide-react'
+import { Braces, Check, Clock3, Copy, Database, FileJson2, Play } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ResponseSnapshot } from '../../../shared/domain'
 import { selectedResponseText } from '../lib/copy-selection'
-import { tokenizeJson } from '../lib/json-highlighter'
+import { MAX_HTML_PREVIEW_LENGTH, sandboxedHtmlDocument } from '../lib/html-preview'
+import { responseCookies } from '../lib/response-cookies'
+import { detectResponseFormat, RESPONSE_FORMATS, type ResponseFormat } from '../lib/response-format'
+import { responseTokenClass, tokenizeResponseText } from '../lib/response-syntax'
+import { ResponseVisualization, type VisualizationMode } from './ResponseVisualization'
 import {
   findNextMatch,
   lineText,
@@ -20,15 +24,35 @@ export function ResponseViewer({
   response: ResponseSnapshot | null
   sending: boolean
 }): React.JSX.Element {
-  const [tab, setTab] = useState<'body' | 'headers'>('body')
+  const [tab, setTab] = useState<'body' | 'headers' | 'cookies'>('body')
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
+  const [chosenFormat, setChosenFormat] = useState<{ responseId: string; format: ResponseFormat } | null>(
+    null
+  )
+  const [previewResponseId, setPreviewResponseId] = useState<string | null>(null)
+  const [chosenVisualization, setChosenVisualization] = useState<{
+    responseId: string
+    mode: VisualizationMode
+  } | null>(null)
   const responseRef = useRef<HTMLElement>(null)
   const selectedTextRef = useRef<string | null>(null)
-  const formattedBody = useMemo(() => prepareResponseBody(response?.body ?? ''), [response?.body])
+  const detectedFormat = useMemo(
+    () => detectResponseFormat(response?.contentType ?? '', response?.body ?? ''),
+    [response?.body, response?.contentType]
+  )
+  const format = chosenFormat?.responseId === response?.id ? chosenFormat.format : detectedFormat
+  const preview = previewResponseId === response?.id && format === 'HTML'
+  const visualization =
+    chosenVisualization?.responseId === response?.id && format === 'JSON' ? chosenVisualization.mode : null
+  const formattedBody = useMemo(
+    () => prepareResponseBody(response?.body ?? '', format),
+    [response?.body, format]
+  )
+  const cookies = useMemo(() => responseCookies(response?.headers ?? []), [response?.headers])
   const highlightedResponseText = (): string | null => {
     const regions =
       responseRef.current?.querySelectorAll<HTMLElement>(
-        '.response-body:not(.response-body-virtual):not([hidden]), .response-virtual-container:not([hidden]) .response-body-virtual, .response-headers'
+        '.response-body:not(.response-body-virtual):not([hidden]), .response-virtual-container:not([hidden]) .response-body-virtual, .response-headers, .response-cookies'
       ) ?? []
     return selectedResponseText(window.getSelection(), regions)
   }
@@ -81,6 +105,9 @@ export function ResponseViewer({
             <button className={tab === 'body' ? 'tab active' : 'tab'} onClick={() => setTab('body')}>
               Body
             </button>
+            <button className={tab === 'cookies' ? 'tab active' : 'tab'} onClick={() => setTab('cookies')}>
+              Cookies {cookies.length > 0 && <span>{cookies.length}</span>}
+            </button>
             <button className={tab === 'headers' ? 'tab active' : 'tab'} onClick={() => setTab('headers')}>
               Headers <span>{response.headers.length}</span>
             </button>
@@ -100,11 +127,97 @@ export function ResponseViewer({
           </button>
         </div>
       </header>
+      {tab === 'body' && !response.error && (
+        <div className="response-format-toolbar">
+          <select
+            value={format}
+            onChange={(event) => {
+              setChosenFormat({ responseId: response.id, format: event.target.value as ResponseFormat })
+              setPreviewResponseId(null)
+              setChosenVisualization(null)
+            }}
+            aria-label="Response body format"
+            title="Choose how to display this response"
+          >
+            {RESPONSE_FORMATS.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className={preview ? 'response-preview-toggle active' : 'response-preview-toggle'}
+            disabled={format !== 'HTML' || response.body.length > MAX_HTML_PREVIEW_LENGTH}
+            onClick={() => {
+              setPreviewResponseId(preview ? null : response.id)
+              setChosenVisualization(null)
+            }}
+            title={
+              response.body.length > MAX_HTML_PREVIEW_LENGTH
+                ? 'Preview is unavailable for very large HTML responses'
+                : 'Render HTML in an isolated preview'
+            }
+          >
+            <Play size={13} /> {preview ? 'Code' : 'Preview'}
+          </button>
+          <select
+            className="response-visual-select"
+            value={visualization ?? 'code'}
+            onChange={(event) => {
+              const mode = event.target.value
+              setChosenVisualization(
+                mode === 'code'
+                  ? null
+                  : {
+                      responseId: response.id,
+                      mode: mode as VisualizationMode
+                    }
+              )
+              setPreviewResponseId(null)
+            }}
+            disabled={format !== 'JSON'}
+            aria-label="Visualize JSON response"
+            title="Display JSON records as a table or chart"
+          >
+            <option value="code">Code</option>
+            <option value="table">Table</option>
+            <option value="line">Line chart</option>
+            <option value="bar">Bar chart</option>
+          </select>
+          {format === 'HTML' && preview && (
+            <span className="response-preview-note">Isolated preview · no external requests</span>
+          )}
+          {(format === 'Hex' || format === 'Base64') && (
+            <span className="response-preview-note">Encoded from decoded UTF-8 text</span>
+          )}
+        </div>
+      )}
       {response.error ? (
         <div className="response-error">{response.error}</div>
       ) : (
         <>
-          <ResponseBody key={response.id} prepared={formattedBody} hidden={tab !== 'body'} />
+          <ResponseBody
+            key={`${response.id}:${format}`}
+            prepared={formattedBody}
+            hidden={tab !== 'body' || preview || Boolean(visualization)}
+          />
+          {tab === 'body' && preview && (
+            <iframe
+              className="response-html-preview"
+              title="Rendered HTML response"
+              sandbox="allow-scripts"
+              referrerPolicy="no-referrer"
+              srcDoc={sandboxedHtmlDocument(response.body)}
+            />
+          )}
+          {tab === 'body' && visualization && (
+            <ResponseVisualization
+              key={`${response.id}:${visualization}`}
+              body={response.body}
+              mode={visualization}
+            />
+          )}
           {tab === 'headers' && (
             <div className="response-headers">
               {response.headers.map((header) => (
@@ -115,6 +228,44 @@ export function ResponseViewer({
               ))}
             </div>
           )}
+          {tab === 'cookies' && (
+            <div className="response-cookies">
+              {cookies.length ? (
+                <div className="response-table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Value</th>
+                        <th>Domain</th>
+                        <th>Path</th>
+                        <th>Expires</th>
+                        <th>SameSite</th>
+                        <th>HttpOnly</th>
+                        <th>Secure</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cookies.map((cookie, index) => (
+                        <tr key={`${cookie.name}-${index}`}>
+                          <td>{cookie.name}</td>
+                          <td>{cookie.value}</td>
+                          <td>{cookie.domain || '—'}</td>
+                          <td>{cookie.path || '—'}</td>
+                          <td>{cookie.expires || '—'}</td>
+                          <td>{cookie.sameSite || '—'}</td>
+                          <td>{cookie.httpOnly ? 'Yes' : 'No'}</td>
+                          <td>{cookie.secure ? 'Yes' : 'No'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p>No Set-Cookie headers in this response.</p>
+              )}
+            </div>
+          )}
         </>
       )}
       {(response.contentType || formattedBody.isJson) && (
@@ -122,7 +273,7 @@ export function ResponseViewer({
           <span className="response-content-type">
             <Braces size={13} /> {response.contentType || 'application/json'}
           </span>
-          {formattedBody.isJson && <JsonLegend />}
+          {format === 'JSON' && formattedBody.isJson && <JsonLegend />}
         </footer>
       )}
     </section>
@@ -158,7 +309,7 @@ function ResponseBody({
         <code>
           {prepared.tokens
             ? prepared.tokens.map((token, index) => (
-                <span className={`json-${token.kind}`} key={index}>
+                <span className={responseTokenClass(prepared.format, token.kind)} key={index}>
                   {token.value}
                 </span>
               ))
@@ -188,9 +339,9 @@ function ResponseBody({
         className={index === matchedLine ? 'response-virtual-line match' : 'response-virtual-line'}
         key={index}
       >
-        {prepared.isJson
-          ? tokenizeJson(content).map((token, tokenIndex) => (
-              <span className={`json-${token.kind}`} key={tokenIndex}>
+        {prepared.format !== 'Raw' && prepared.format !== 'Hex' && prepared.format !== 'Base64'
+          ? tokenizeResponseText(content, prepared.format)?.map((token, tokenIndex) => (
+              <span className={responseTokenClass(prepared.format, token.kind)} key={tokenIndex}>
                 {token.value}
               </span>
             ))

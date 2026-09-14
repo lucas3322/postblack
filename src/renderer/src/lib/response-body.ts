@@ -1,4 +1,6 @@
 import { tokenizeJson, type JsonToken } from './json-highlighter'
+import { displayResponseText, type ResponseFormat } from './response-format'
+import { tokenizeResponseText, type ResponseToken } from './response-syntax'
 
 export const LARGE_RESPONSE_THRESHOLD = 50_000
 export const RESPONSE_LINE_HEIGHT = 18
@@ -7,26 +9,34 @@ export const RESPONSE_LINE_OVERSCAN = 12
 export interface PreparedResponseBody {
   text: string
   isJson: boolean
-  tokens: JsonToken[] | null
+  format: ResponseFormat
+  tokens: ResponseToken[] | null
   lineStarts: number[] | null
 }
 
-export function prepareResponseBody(body: string): PreparedResponseBody {
+export function prepareResponseBody(body: string, requestedFormat?: ResponseFormat): PreparedResponseBody {
   let text = body
   let isJson = false
 
-  try {
-    text = JSON.stringify(JSON.parse(body), null, 2)
-    isJson = true
-  } catch {
-    // Non-JSON responses should remain exactly as received.
+  if (!requestedFormat || requestedFormat === 'JSON') {
+    try {
+      text = JSON.stringify(JSON.parse(body), null, 2)
+      isJson = true
+    } catch {
+      // Invalid JSON stays intact for inspection.
+    }
+  } else {
+    text = displayResponseText(body, requestedFormat)
   }
+
+  const format = requestedFormat ?? (isJson ? 'JSON' : 'Raw')
 
   if (text.length > LARGE_RESPONSE_THRESHOLD) {
-    return { text, isJson, tokens: null, lineStarts: collectLineStarts(text) }
+    return { text, isJson, format, tokens: null, lineStarts: collectLineStarts(text) }
   }
 
-  return { text, isJson, tokens: isJson ? tokenizeJson(text) : null, lineStarts: null }
+  const tokens = format === 'JSON' && isJson ? tokenizeJson(text) : tokenizeResponseText(text, format)
+  return { text, isJson, format, tokens, lineStarts: null }
 }
 
 export function collectLineStarts(text: string): number[] {

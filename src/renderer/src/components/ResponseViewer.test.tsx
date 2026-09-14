@@ -35,4 +35,16 @@ describe('ResponseViewer', () => {
     expect(html.length).toBeLessThan(100_000)
     expect(html).not.toContain('"id": 3999')
   })
+
+  it('offers response formats and an HTML preview for a Laravel dump', () => {
+    const response = snapshot('<pre class="sf-dump">SQLSTATE</pre>')
+    response.contentType = 'text/html; charset=UTF-8'
+    const html = renderToString(<ResponseViewer response={response} sending={false} />)
+
+    expect(html).toContain('aria-label="Response body format"')
+    expect(html).toContain('value="HTML" selected=""')
+    expect(html).toContain('Preview')
+    expect(html).toContain('syntax-tag')
+    expect(html).toContain('SQLSTATE')
+  })
 })
