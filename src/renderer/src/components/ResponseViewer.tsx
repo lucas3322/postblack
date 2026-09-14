@@ -40,10 +40,12 @@ export function ResponseViewer({
     () => detectResponseFormat(response?.contentType ?? '', response?.body ?? ''),
     [response?.body, response?.contentType]
   )
-  const format = chosenFormat?.responseId === response?.id ? chosenFormat.format : detectedFormat
+  const format = response && chosenFormat?.responseId === response.id ? chosenFormat.format : detectedFormat
   const preview = previewResponseId === response?.id && format === 'HTML'
   const visualization =
-    chosenVisualization?.responseId === response?.id && format === 'JSON' ? chosenVisualization.mode : null
+    response && chosenVisualization?.responseId === response.id && format === 'JSON'
+      ? chosenVisualization.mode
+      : null
   const formattedBody = useMemo(
     () => prepareResponseBody(response?.body ?? '', format),
     [response?.body, format]

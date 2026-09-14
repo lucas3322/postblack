@@ -22,6 +22,18 @@ function snapshot(body: string): ResponseSnapshot {
 }
 
 describe('ResponseViewer', () => {
+  it('shows an empty state while a new request has no response', () => {
+    const html = renderToString(<ResponseViewer response={null} sending={false} />)
+
+    expect(html).toContain('Your response will appear here')
+  })
+
+  it('shows progress while sending a request without a response', () => {
+    const html = renderToString(<ResponseViewer response={null} sending />)
+
+    expect(html).toContain('Sending request')
+  })
+
   it('renders a bounded number of highlighted lines for a large JSON body', () => {
     const body = JSON.stringify(Array.from({ length: 60_000 }, (_, id) => ({ id, active: true })))
     const html = renderToString(<ResponseViewer response={snapshot(body)} sending={false} />)
