@@ -51,6 +51,7 @@ import {
   requestPaneBounds
 } from './lib/request-pane-size'
 import { hasTextSelection } from './lib/copy-selection'
+import { moveRequestInCollections, type RequestLocation } from './lib/request-move'
 import { responseForRequest } from './lib/response-selection'
 import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
 
@@ -429,6 +430,13 @@ export function App(): React.JSX.Element {
     setSelectedRequestId(request.id)
     setSelectedCollectionId(null)
     setResponse(null)
+  }
+
+  const moveRequest = (requestId: string, target: RequestLocation): void => {
+    updateWorkspace((current) => {
+      const collections = moveRequestInCollections(current.collections, requestId, target)
+      return collections === current.collections ? current : { ...current, collections, updatedAt: nowIso() }
+    })
   }
 
   const addScratchRequest = (): void => {
@@ -1040,6 +1048,7 @@ export function App(): React.JSX.Element {
           onRunCollection={(collection) => void runCollection(collection)}
           onMoveCollection={moveCollection}
           onAddRequest={addRequest}
+          onMoveRequest={moveRequest}
           onAddExample={addExample}
           onShareRequest={(request) => void shareRequest(request)}
           onCopyLink={(request) => void copyRequestLink(request)}

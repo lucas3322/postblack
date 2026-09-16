@@ -18,7 +18,7 @@ import {
   Share2,
   Trash2
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type {
   ApiRequest,
@@ -27,6 +27,7 @@ import type {
   RequestFolder,
   Workspace
 } from '../../../shared/domain'
+import type { RequestLocation } from '../lib/request-move'
 
 interface SidebarProps {
   workspace: Workspace
@@ -47,6 +48,7 @@ interface SidebarProps {
   onRunCollection: (collection: RequestCollection) => void
   onMoveCollection: (collection: RequestCollection) => void
   onAddRequest: (collectionId: string, folderId?: string) => void
+  onMoveRequest: (requestId: string, target: RequestLocation) => void
   onAddExample: (request: ApiRequest) => void
   onShareRequest: (request: ApiRequest) => void
   onCopyLink: (request: ApiRequest) => void
@@ -69,6 +71,10 @@ interface CollectionMenuState {
   y: number
 }
 
+interface DraggedRequest extends RequestLocation {
+  requestId: string
+}
+
 export function Sidebar({
   workspace,
   selectedRequestId,
@@ -88,6 +94,7 @@ export function Sidebar({
   onRunCollection,
   onMoveCollection,
   onAddRequest,
+  onMoveRequest,
   onAddExample,
   onShareRequest,
   onCopyLink,
@@ -100,6 +107,8 @@ export function Sidebar({
   const [query, setQuery] = useState('')
   const [requestMenu, setRequestMenu] = useState<RequestMenuState | null>(null)
   const [collectionMenu, setCollectionMenu] = useState<CollectionMenuState | null>(null)
+  const [draggedRequest, setDraggedRequest] = useState<DraggedRequest | null>(null)
+  const [dropTarget, setDropTarget] = useState<RequestLocation | null>(null)
   const firstMenuItem = useRef<HTMLButtonElement>(null)
   const collections = useMemo(
     () => filterCollections(workspace.collections, query),
@@ -188,6 +197,11 @@ export function Sidebar({
             onSelectRequest={onSelectRequest}
             onSelectExample={onSelectExample}
             onAddRequest={onAddRequest}
+            draggedRequest={draggedRequest}
+            dropTarget={dropTarget}
+            onDragRequest={setDraggedRequest}
+            onDropTarget={setDropTarget}
+            onMoveRequest={onMoveRequest}
             onRenameFolder={onRenameFolder}
             onDeleteFolder={onDeleteFolder}
             onRenameCollection={onRenameCollection}
@@ -332,6 +346,11 @@ function CollectionNode({
   onSelectRequest,
   onSelectExample,
   onAddRequest,
+  draggedRequest,
+  dropTarget,
+  onDragRequest,
+  onDropTarget,
+  onMoveRequest,
   onRenameFolder,
   onDeleteFolder,
   onRenameCollection,
@@ -347,6 +366,11 @@ function CollectionNode({
   onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onAddRequest: (collectionId: string, folderId?: string) => void
+  draggedRequest: DraggedRequest | null
+  dropTarget: RequestLocation | null
+  onDragRequest: (request: DraggedRequest | null) => void
+  onDropTarget: (target: RequestLocation | null) => void
+  onMoveRequest: (requestId: string, target: RequestLocation) => void
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onRenameCollection: (collection: RequestCollection) => void
@@ -354,11 +378,28 @@ function CollectionNode({
   onOpenCollectionMenu: (collection: RequestCollection, x: number, y: number) => void
 }): React.JSX.Element {
   const [open, setOpen] = useState(true)
+  const collectionTarget = { collectionId: collection.id }
+  const canDropOnCollection = canMoveRequest(draggedRequest, collectionTarget)
+  const collectionIsTarget = sameRequestLocation(dropTarget, collectionTarget)
   return (
     <div className="collection-node">
       <div
-        className={collection.id === selectedCollectionId ? 'collection-row selected' : 'collection-row'}
+        className={`${collection.id === selectedCollectionId ? 'collection-row selected' : 'collection-row'}${
+          collectionIsTarget ? ' request-drop-target' : ''
+        }`}
         onContextMenu={(event) => openCollectionFromContextMenu(event, collection, onOpenCollectionMenu)}
+        onDragOver={(event) => handleDragOver(event, canDropOnCollection, collectionTarget, onDropTarget)}
+        onDragLeave={(event) => handleDragLeave(event, onDropTarget)}
+        onDrop={(event) =>
+          handleRequestDrop(
+            event,
+            draggedRequest,
+            collectionTarget,
+            onMoveRequest,
+            onDragRequest,
+            onDropTarget
+          )
+        }
       >
         <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle collection">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -401,6 +442,10 @@ function CollectionNode({
               onSelectRequest={onSelectRequest}
               onSelectExample={onSelectExample}
               onOpenRequestMenu={onOpenRequestMenu}
+              location={collectionTarget}
+              draggedRequest={draggedRequest}
+              onDragRequest={onDragRequest}
+              onDropTarget={onDropTarget}
             />
           ))}
           {collection.folders.map((folder) => (
@@ -416,6 +461,11 @@ function CollectionNode({
               onSelectRequest={onSelectRequest}
               onSelectExample={onSelectExample}
               onOpenRequestMenu={onOpenRequestMenu}
+              draggedRequest={draggedRequest}
+              dropTarget={dropTarget}
+              onDragRequest={onDragRequest}
+              onDropTarget={onDropTarget}
+              onMoveRequest={onMoveRequest}
             />
           ))}
         </div>
@@ -434,7 +484,12 @@ function FolderNode({
   onDeleteFolder,
   onSelectRequest,
   onSelectExample,
-  onOpenRequestMenu
+  onOpenRequestMenu,
+  draggedRequest,
+  dropTarget,
+  onDragRequest,
+  onDropTarget,
+  onMoveRequest
 }: {
   collection: RequestCollection
   folder: RequestFolder
@@ -446,11 +501,26 @@ function FolderNode({
   onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
+  draggedRequest: DraggedRequest | null
+  dropTarget: RequestLocation | null
+  onDragRequest: (request: DraggedRequest | null) => void
+  onDropTarget: (target: RequestLocation | null) => void
+  onMoveRequest: (requestId: string, target: RequestLocation) => void
 }): React.JSX.Element {
   const [open, setOpen] = useState(true)
+  const folderTarget = { collectionId: collection.id, folderId: folder.id }
+  const canDropOnFolder = canMoveRequest(draggedRequest, folderTarget)
+  const folderIsTarget = sameRequestLocation(dropTarget, folderTarget)
   return (
     <div className="folder-node">
-      <div className="folder-row">
+      <div
+        className={`folder-row${folderIsTarget ? ' request-drop-target' : ''}`}
+        onDragOver={(event) => handleDragOver(event, canDropOnFolder, folderTarget, onDropTarget)}
+        onDragLeave={(event) => handleDragLeave(event, onDropTarget)}
+        onDrop={(event) =>
+          handleRequestDrop(event, draggedRequest, folderTarget, onMoveRequest, onDragRequest, onDropTarget)
+        }
+      >
         <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle folder">
           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </button>
@@ -488,6 +558,10 @@ function FolderNode({
               onSelectRequest={onSelectRequest}
               onSelectExample={onSelectExample}
               onOpenRequestMenu={onOpenRequestMenu}
+              location={folderTarget}
+              draggedRequest={draggedRequest}
+              onDragRequest={onDragRequest}
+              onDropTarget={onDropTarget}
             />
           ))}
         </div>
@@ -502,7 +576,11 @@ function RequestTreeItem({
   openRequestMenuId,
   onSelectRequest,
   onSelectExample,
-  onOpenRequestMenu
+  onOpenRequestMenu,
+  location,
+  draggedRequest,
+  onDragRequest,
+  onDropTarget
 }: {
   request: ApiRequest
   selectedRequestId: string | null
@@ -510,17 +588,33 @@ function RequestTreeItem({
   onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
+  location: RequestLocation
+  draggedRequest: DraggedRequest | null
+  onDragRequest: (request: DraggedRequest | null) => void
+  onDropTarget: (target: RequestLocation | null) => void
 }): React.JSX.Element {
   return (
     <div className="request-node">
       <div
-        className={request.id === selectedRequestId ? 'request-row selected' : 'request-row'}
+        className={`${request.id === selectedRequestId ? 'request-row selected' : 'request-row'}${
+          draggedRequest?.requestId === request.id ? ' dragging' : ''
+        }`}
+        draggable
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('text/plain', request.id)
+          onDragRequest({ requestId: request.id, ...location })
+        }}
+        onDragEnd={() => {
+          onDragRequest(null)
+          onDropTarget(null)
+        }}
         onContextMenu={(event) => openFromContextMenu(event, request, onOpenRequestMenu)}
       >
         <button
           className="request-select"
           onClick={(event) => onSelectRequest(request, event.detail >= 2)}
-          title="Double-click to keep this request open"
+          title="Double-click to keep open · drag to move"
         >
           <span className={`method-label method-${request.method.toLowerCase()}`}>{request.method}</span>
           <span>{request.name}</span>
@@ -598,6 +692,55 @@ function openCollectionFromContextMenu(
 ): void {
   event.preventDefault()
   onOpen(collection, event.clientX, event.clientY)
+}
+
+function handleDragOver(
+  event: DragEvent<HTMLDivElement>,
+  canDrop: boolean,
+  target: RequestLocation,
+  onDropTarget: (target: RequestLocation | null) => void
+): void {
+  if (!canDrop) return
+  event.preventDefault()
+  event.stopPropagation()
+  event.dataTransfer.dropEffect = 'move'
+  onDropTarget(target)
+}
+
+function handleDragLeave(
+  event: DragEvent<HTMLDivElement>,
+  onDropTarget: (target: RequestLocation | null) => void
+): void {
+  const nextElement = event.relatedTarget
+  if (nextElement instanceof Node && event.currentTarget.contains(nextElement)) return
+  onDropTarget(null)
+}
+
+function handleRequestDrop(
+  event: DragEvent<HTMLDivElement>,
+  draggedRequest: DraggedRequest | null,
+  target: RequestLocation,
+  onMoveRequest: (requestId: string, target: RequestLocation) => void,
+  onDragRequest: (request: DraggedRequest | null) => void,
+  onDropTarget: (target: RequestLocation | null) => void
+): void {
+  if (!canMoveRequest(draggedRequest, target)) return
+  event.preventDefault()
+  event.stopPropagation()
+  onMoveRequest(draggedRequest.requestId, target)
+  onDragRequest(null)
+  onDropTarget(null)
+}
+
+function canMoveRequest(
+  draggedRequest: DraggedRequest | null,
+  target: RequestLocation
+): draggedRequest is DraggedRequest {
+  return Boolean(draggedRequest && !sameRequestLocation(draggedRequest, target))
+}
+
+function sameRequestLocation(left: RequestLocation | null, right: RequestLocation): boolean {
+  return Boolean(left && left.collectionId === right.collectionId && left.folderId === right.folderId)
 }
 
 function menuPosition(x: number, y: number, height = 330): { x: number; y: number } {

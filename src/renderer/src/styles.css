@@ -344,6 +344,12 @@ select {
   background: #13243a;
   box-shadow: inset 2px 0 var(--blue);
 }
+.collection-row.request-drop-target,
+.folder-row.request-drop-target {
+  color: #e8f2ff;
+  background: #173252;
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
 .collection-row:hover .icon-button.ghost {
   opacity: 1;
 }
@@ -434,6 +440,7 @@ select {
   color: #98a8bc;
   background: transparent;
   font-size: 11px;
+  cursor: grab;
 }
 .request-select {
   min-width: 0;
@@ -461,6 +468,10 @@ select {
   color: #e8f2ff;
   background: #13243a;
   box-shadow: inset 2px 0 var(--blue);
+}
+.request-row.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
 }
 .request-more {
   width: 27px;
