@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0 — 2026-09-16
+
+- feat: adicionar funcionalidade de mudança de cor para coleções e atualizar esquemas correspondentes (b5c24cd)
+
 ## 0.11.0 — 2026-09-16
 
 - feat: otimizar a função de mudança de cor de pasta e melhorar o estilo do menu de cores (a14b18f)
