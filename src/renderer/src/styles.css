@@ -19,6 +19,45 @@
   --orange: #ff9f43;
   --red: #ff5f68;
 }
+.theme-light {
+  --panel: #f4f7fb;
+  --panel-strong: #ffffff;
+  --border: #cbd5e1;
+  --text: #172033;
+  --muted: #53657d;
+  --blue: #1769d1;
+  --green: #087f5b;
+  --orange: #b85c00;
+  --red: #bd2635;
+  --cyan: #087f99;
+  background: var(--panel);
+  color: var(--text);
+  filter: invert(0.92) hue-rotate(180deg);
+}
+.vision-monochrome {
+  filter: grayscale(0.9);
+}
+.vision-protanopia {
+  filter: saturate(0.78) hue-rotate(12deg);
+}
+.vision-deuteranopia {
+  filter: saturate(0.82) hue-rotate(-8deg);
+}
+.vision-tritanopia {
+  filter: saturate(0.82) hue-rotate(24deg);
+}
+.theme-light.vision-monochrome {
+  filter: invert(0.92) hue-rotate(180deg) grayscale(0.9);
+}
+.theme-light.vision-protanopia {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.78) hue-rotate(12deg);
+}
+.theme-light.vision-deuteranopia {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.82) hue-rotate(-8deg);
+}
+.theme-light.vision-tritanopia {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.82) hue-rotate(24deg);
+}
 
 * {
   box-sizing: border-box;
@@ -601,6 +640,15 @@ select {
   background: #111923;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.56);
   animation: request-menu-enter 120ms ease-out;
+}
+.ide-settings-form {
+  display: grid;
+  gap: 16px;
+}
+.ide-settings-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 .folder-color-menu-title {
   display: block;

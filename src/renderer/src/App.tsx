@@ -45,6 +45,7 @@ import { Sidebar } from './components/Sidebar'
 import { TextInputModal } from './components/TextInputModal'
 import { UpdateNotice } from './components/UpdateNotice'
 import { WorkspaceSettingsModal } from './components/WorkspaceSettingsModal'
+import { IdeSettingsModal, type ColorVisionMode, type IdeTheme } from './components/IdeSettingsModal'
 import {
   availablePaneHeight,
   clampRequestPaneHeight,
@@ -67,7 +68,8 @@ import {
 import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
 
 type SaveState = 'saved' | 'saving' | 'error'
-type ModalName = 'environment' | 'curl' | 'history' | 'workspace' | 'workspace-settings' | null
+type ModalName =
+  'environment' | 'curl' | 'history' | 'workspace' | 'workspace-settings' | 'ide-settings' | null
 
 interface TextDialog {
   title: string
@@ -99,6 +101,12 @@ export function App(): React.JSX.Element {
   const [manualUpdateCheck, setManualUpdateCheck] = useState(0)
   const [requestPaneRatio, setRequestPaneRatio] = useState(readRequestPaneRatio)
   const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth)
+  const [ideTheme, setIdeTheme] = useState<IdeTheme>(
+    () => readPreference('postblack:ide-theme', 'dark') as IdeTheme
+  )
+  const [colorVision, setColorVision] = useState<ColorVisionMode>(
+    () => readPreference('postblack:color-vision', 'normal') as ColorVisionMode
+  )
   const [mainPaneHeight, setMainPaneHeight] = useState(0)
   const hydrated = useRef(false)
   const immediateSave = useRef(false)
@@ -357,6 +365,7 @@ export function App(): React.JSX.Element {
   }
 
   const updateCollection = (collection: RequestCollection): void => {
+    immediateSave.current = true
     updateWorkspace((current) => ({
       ...current,
       updatedAt: nowIso(),
@@ -884,6 +893,7 @@ export function App(): React.JSX.Element {
   }
 
   const saveWorkspaceSettings = (name: string, description: string): void => {
+    immediateSave.current = true
     updateWorkspace((current) => ({ ...current, name, description, updatedAt: nowIso() }))
     setModal(null)
     showNotice(`Workspace "${name}" updated.`)
@@ -1020,7 +1030,7 @@ export function App(): React.JSX.Element {
     )
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell theme-${ideTheme} vision-${colorVision}`}>
       <header className="titlebar">
         <div className="brand">
           <div className="brand-mark">
@@ -1085,7 +1095,7 @@ export function App(): React.JSX.Element {
             <History size={19} />
           </button>
           <div className="activity-spacer" />
-          <button className="activity" title="Settings">
+          <button className="activity" onClick={() => setModal('ide-settings')} title="IDE settings">
             <Settings2 size={19} />
           </button>
         </nav>
@@ -1270,6 +1280,21 @@ export function App(): React.JSX.Element {
         <WorkspaceSettingsModal
           workspace={workspace}
           onSave={saveWorkspaceSettings}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal === 'ide-settings' && (
+        <IdeSettingsModal
+          theme={ideTheme}
+          colorVision={colorVision}
+          onSave={(theme, vision) => {
+            setIdeTheme(theme)
+            setColorVision(vision)
+            persistPreference('postblack:ide-theme', theme)
+            persistPreference('postblack:color-vision', vision)
+            setModal(null)
+            showNotice('IDE settings saved.')
+          }}
           onClose={() => setModal(null)}
         />
       )}
@@ -1754,5 +1779,21 @@ function readSidebarWidth(): number {
     return Number.isFinite(saved) ? clampSidebarWidth(saved) : DEFAULT_SIDEBAR_WIDTH
   } catch {
     return DEFAULT_SIDEBAR_WIDTH
+  }
+}
+
+function readPreference(key: string, fallback: string): string {
+  try {
+    return window.localStorage.getItem(key) ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+function persistPreference(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // Preferences remain available for the current session.
   }
 }
