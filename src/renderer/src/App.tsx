@@ -465,6 +465,14 @@ export function App(): React.JSX.Element {
     }))
   }
 
+  const changeCollectionColor = (collection: RequestCollection, color: FolderColor): void => {
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.map((item) => (item.id === collection.id ? { ...item, color } : item))
+    }))
+  }
+
   const addRequest = (collectionId: string, folderId?: string): void => {
     const request = createRequest()
     updateWorkspace((current) => ({
@@ -1114,6 +1122,7 @@ export function App(): React.JSX.Element {
           onRenameFolder={renameFolder}
           onDeleteFolder={deleteFolder}
           onChangeFolderColor={changeFolderColor}
+          onChangeCollectionColor={changeCollectionColor}
           onRunCollection={(collection) => void runCollection(collection)}
           onMoveCollection={moveCollection}
           onAddRequest={addRequest}

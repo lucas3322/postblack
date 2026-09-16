@@ -78,7 +78,8 @@ const workspaceSchema = z.object({
       description: z.string().default(''),
       requests: z.array(requestSchema),
       folders: z.array(requestFolderSchema).default([]),
-      createdAt: z.string()
+      createdAt: z.string(),
+      color: z.enum(FOLDER_COLORS).default('default')
     })
   ),
   environments: z.array(z.object({ id: z.string(), name: z.string(), variables: z.array(keyValueSchema) })),

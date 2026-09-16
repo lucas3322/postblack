@@ -49,6 +49,7 @@ interface SidebarProps {
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onChangeFolderColor: (collection: RequestCollection, folder: RequestFolder, color: FolderColor) => void
+  onChangeCollectionColor: (collection: RequestCollection, color: FolderColor) => void
   onRunCollection: (collection: RequestCollection) => void
   onMoveCollection: (collection: RequestCollection) => void
   onAddRequest: (collectionId: string, folderId?: string) => void
@@ -78,7 +79,7 @@ interface CollectionMenuState {
 
 interface FolderColorMenuState {
   collection: RequestCollection
-  folder: RequestFolder
+  folder?: RequestFolder
   x: number
   y: number
 }
@@ -127,6 +128,7 @@ export function Sidebar({
   onRenameFolder,
   onDeleteFolder,
   onChangeFolderColor,
+  onChangeCollectionColor,
   onRunCollection,
   onMoveCollection,
   onAddRequest,
@@ -217,6 +219,12 @@ export function Sidebar({
     setFolderColorMenu({ collection, folder, ...menuPosition(x, y, 150) })
   }
 
+  const openCollectionColorMenu = (collection: RequestCollection, x: number, y: number): void => {
+    setRequestMenu(null)
+    setCollectionMenu(null)
+    setFolderColorMenu({ collection, ...menuPosition(x, y, 150) })
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-search">
@@ -263,7 +271,11 @@ export function Sidebar({
             onRenameFolder={onRenameFolder}
             onDeleteFolder={onDeleteFolder}
             onOpenFolderColorMenu={openFolderColorMenu}
-            openFolderColorMenuId={folderColorMenu?.folder.id ?? null}
+            openFolderColorMenuId={folderColorMenu?.folder?.id ?? null}
+            onOpenCollectionColorMenu={openCollectionColorMenu}
+            collectionColorMenuOpen={
+              folderColorMenu?.collection.id === collection.id && !folderColorMenu.folder
+            }
             onRenameCollection={onRenameCollection}
             onOpenRequestMenu={openRequestMenu}
             onOpenCollectionMenu={openCollectionMenu}
@@ -359,6 +371,18 @@ export function Sidebar({
               label="Copy as JSON"
               onClick={() => runCollectionAction(onCopyCollection)}
             />
+            <MenuButton
+              icon={<Palette size={15} />}
+              label="Change color"
+              onClick={() => {
+                if (!collectionMenu) return
+                openCollectionColorMenu(
+                  collectionMenu.collection,
+                  collectionMenu.x + 232,
+                  collectionMenu.y + 8
+                )
+              }}
+            />
             <div className="request-menu-separator" />
             <MenuButton
               icon={<Pencil size={15} />}
@@ -397,14 +421,18 @@ export function Sidebar({
           <div
             className="folder-color-menu"
             role="menu"
-            aria-label={`Color for ${folderColorMenu.folder.name}`}
+            aria-label={`Color for ${folderColorMenu.folder?.name ?? folderColorMenu.collection.name}`}
             style={{ left: folderColorMenu.x, top: folderColorMenu.y }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <span className="folder-color-menu-title">Folder color</span>
+            <span className="folder-color-menu-title">
+              {folderColorMenu.folder ? 'Folder color' : 'Collection color'}
+            </span>
             <div className="folder-color-grid">
               {FOLDER_COLOR_OPTIONS.map((option) => {
-                const selected = (folderColorMenu.folder.color ?? 'default') === option.value
+                const selected =
+                  (folderColorMenu.folder?.color ?? folderColorMenu.collection.color ?? 'default') ===
+                  option.value
                 return (
                   <button
                     key={option.value}
@@ -414,7 +442,11 @@ export function Sidebar({
                     aria-label={`${option.label}${selected ? ', selected' : ''}`}
                     aria-pressed={selected}
                     onClick={() => {
-                      onChangeFolderColor(folderColorMenu.collection, folderColorMenu.folder, option.value)
+                      if (folderColorMenu.folder) {
+                        onChangeFolderColor(folderColorMenu.collection, folderColorMenu.folder, option.value)
+                      } else {
+                        onChangeCollectionColor(folderColorMenu.collection, option.value)
+                      }
                       setFolderColorMenu(null)
                     }}
                   />
@@ -453,6 +485,8 @@ function CollectionNode({
   onDeleteFolder,
   onOpenFolderColorMenu,
   openFolderColorMenuId,
+  onOpenCollectionColorMenu,
+  collectionColorMenuOpen,
   onRenameCollection,
   onOpenRequestMenu,
   onOpenCollectionMenu
@@ -481,6 +515,8 @@ function CollectionNode({
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onOpenFolderColorMenu: (collection: RequestCollection, folder: RequestFolder, x: number, y: number) => void
   openFolderColorMenuId: string | null
+  onOpenCollectionColorMenu: (collection: RequestCollection, x: number, y: number) => void
+  collectionColorMenuOpen: boolean
   onRenameCollection: (collection: RequestCollection) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
   onOpenCollectionMenu: (collection: RequestCollection, x: number, y: number) => void
@@ -541,11 +577,25 @@ function CollectionNode({
           onDoubleClick={() => onRenameCollection(collection)}
           title="Double-click to rename collection"
         >
-          <FolderClosed size={15} />
+          <FolderClosed size={15} style={{ color: folderColor(collection.color) }} />
           <span>{collection.name}</span>
         </button>
         <button className="icon-button" title="Add request" onClick={() => onAddRequest(collection.id)}>
           <Plus size={14} />
+        </button>
+        <button
+          className="icon-button ghost collection-color-button"
+          title="Change collection color"
+          aria-label={`Change color for ${collection.name}`}
+          aria-haspopup="menu"
+          aria-expanded={collectionColorMenuOpen}
+          onClick={(event) => {
+            event.stopPropagation()
+            const bounds = event.currentTarget.getBoundingClientRect()
+            onOpenCollectionColorMenu(collection, bounds.right + 4, bounds.top)
+          }}
+        >
+          <Palette size={13} />
         </button>
         <button
           className="icon-button ghost"

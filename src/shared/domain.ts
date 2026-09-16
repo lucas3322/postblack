@@ -55,6 +55,7 @@ export interface RequestCollection {
   requests: ApiRequest[]
   folders: RequestFolder[]
   createdAt: string
+  color?: FolderColor
 }
 
 export const FOLDER_COLORS = [
