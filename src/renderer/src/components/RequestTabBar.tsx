@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import type { ApiRequest } from '../../../shared/domain'
 import type { OpenRequestTab } from '../request-tabs'
 
@@ -10,6 +10,7 @@ interface RequestTabBarProps {
   onSelect: (requestId: string) => void
   onPin: (requestId: string) => void
   onClose: (requestId: string) => void
+  onNew: () => void
 }
 
 export function RequestTabBar({
@@ -19,7 +20,8 @@ export function RequestTabBar({
   dirtyRequestIds,
   onSelect,
   onPin,
-  onClose
+  onClose,
+  onNew
 }: RequestTabBarProps): React.JSX.Element {
   return (
     <nav className="request-tab-bar" aria-label="Open requests">
@@ -55,6 +57,15 @@ export function RequestTabBar({
           </div>
         )
       })}
+      <button
+        type="button"
+        className="request-new-tab"
+        onClick={onNew}
+        aria-label="New request"
+        title="New request (Ctrl/⌘+N)"
+      >
+        <Plus size={15} />
+      </button>
     </nav>
   )
 }

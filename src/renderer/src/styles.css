@@ -710,6 +710,22 @@ select {
 .request-tab-close:hover {
   background: #22354e;
 }
+.request-new-tab {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--border);
+  color: #8293a9;
+  background: transparent;
+}
+.request-new-tab:hover {
+  color: var(--text);
+  background: #132035;
+}
 .request-tab-dirty-dot {
   display: inline-block;
   flex: none;

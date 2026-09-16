@@ -36,6 +36,7 @@ import { Modal } from './components/Modal'
 import { MoveCollectionModal } from './components/MoveCollectionModal'
 import { RequestEditor } from './components/RequestEditor'
 import { RequestPaneSplitter } from './components/RequestPaneSplitter'
+import { SaveRequestModal } from './components/SaveRequestModal'
 import { RequestTabBar } from './components/RequestTabBar'
 import { ResponseViewer } from './components/ResponseViewer'
 import { Sidebar } from './components/Sidebar'
@@ -70,6 +71,8 @@ export function App(): React.JSX.Element {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
   const [openTabs, setOpenTabs] = useState<OpenRequestTab[]>([])
   const [requestDrafts, setRequestDrafts] = useState<Record<string, ApiRequest>>({})
+  const [scratchRequests, setScratchRequests] = useState<Record<string, ApiRequest>>({})
+  const [savingScratchRequestId, setSavingScratchRequestId] = useState<string | null>(null)
   const [closingDirtyTabId, setClosingDirtyTabId] = useState<string | null>(null)
   const [response, setResponse] = useState<ResponseSnapshot | null>(null)
   const [sending, setSending] = useState(false)
@@ -144,7 +147,9 @@ export function App(): React.JSX.Element {
 
   const workspace = state?.workspaces.find((item) => item.id === state.activeWorkspaceId) ?? null
   const persistedRequest = workspace ? findRequest(workspace, selectedRequestId) : null
-  const selectedRequest = selectedRequestId ? (requestDrafts[selectedRequestId] ?? persistedRequest) : null
+  const selectedRequest = selectedRequestId
+    ? (scratchRequests[selectedRequestId] ?? requestDrafts[selectedRequestId] ?? persistedRequest)
+    : null
   const displayedResponse = responseForRequest(selectedRequestId, response, state?.history ?? [])
   const selectedCollection = workspace?.collections.find((item) => item.id === selectedCollectionId) ?? null
   const movingCollection = workspace?.collections.find((item) => item.id === movingCollectionId) ?? null
@@ -156,9 +161,12 @@ export function App(): React.JSX.Element {
     () => (workspace ? scopedVariableDetails(state?.globalVariables ?? [], workspace) : {}),
     [state?.globalVariables, workspace]
   )
-  const dirtyRequestIds = new Set(Object.keys(requestDrafts))
+  const dirtyRequestIds = new Set([...Object.keys(requestDrafts), ...Object.keys(scratchRequests)])
   const workspaceTabs = openTabs.filter(
-    (tab) => tab.workspaceId === workspace?.id && workspace && findRequest(workspace, tab.requestId)
+    (tab) =>
+      tab.workspaceId === workspace?.id &&
+      workspace &&
+      (findRequest(workspace, tab.requestId) || scratchRequests[tab.requestId])
   )
   const hasRequestTabs = workspaceTabs.length > 0
   const availableHeight = availablePaneHeight(mainPaneHeight, hasRequestTabs)
@@ -177,7 +185,12 @@ export function App(): React.JSX.Element {
   }
 
   useEffect(() => {
-    if (!workspace || !selectedRequestId || !findRequest(workspace, selectedRequestId)) return
+    if (
+      !workspace ||
+      !selectedRequestId ||
+      (!findRequest(workspace, selectedRequestId) && !scratchRequests[selectedRequestId])
+    )
+      return
     setOpenTabs((current) => openRequestTab(current, workspace.id, selectedRequestId, false, dirtyRequestIds))
     // Tabs open when the selected request changes, not on each workspace edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,6 +225,10 @@ export function App(): React.JSX.Element {
   }
 
   const editRequest = (request: ApiRequest): void => {
+    if (scratchRequests[request.id]) {
+      setScratchRequests((current) => ({ ...current, [request.id]: request }))
+      return
+    }
     const saved = workspace ? findRequest(workspace, request.id) : null
     setRequestDrafts((current) => {
       const next = { ...current }
@@ -222,6 +239,10 @@ export function App(): React.JSX.Element {
   }
 
   const saveRequestDraft = (requestId: string): void => {
+    if (scratchRequests[requestId]) {
+      setSavingScratchRequestId(requestId)
+      return
+    }
     const draft = requestDrafts[requestId]
     if (!draft) return
     immediateSave.current = true
@@ -235,7 +256,7 @@ export function App(): React.JSX.Element {
   }
 
   const closeTab = (requestId: string, discardDraft = false): void => {
-    if (requestDrafts[requestId] && !discardDraft) {
+    if ((requestDrafts[requestId] || scratchRequests[requestId]) && !discardDraft) {
       setClosingDirtyTabId(requestId)
       return
     }
@@ -244,6 +265,11 @@ export function App(): React.JSX.Element {
     setOpenTabs(remaining)
     if (discardDraft) {
       setRequestDrafts((current) => {
+        const next = { ...current }
+        delete next[requestId]
+        return next
+      })
+      setScratchRequests((current) => {
         const next = { ...current }
         delete next[requestId]
         return next
@@ -403,6 +429,45 @@ export function App(): React.JSX.Element {
     setSelectedRequestId(request.id)
     setSelectedCollectionId(null)
     setResponse(null)
+  }
+
+  const addScratchRequest = (): void => {
+    if (!workspace) return
+    const request = createRequest()
+    setScratchRequests((current) => ({ ...current, [request.id]: request }))
+    setOpenTabs((current) => [...current, { workspaceId: workspace.id, requestId: request.id, pinned: true }])
+    setSelectedRequestId(request.id)
+    setSelectedCollectionId(null)
+    setResponse(null)
+  }
+
+  const saveScratchRequest = (requestId: string, collectionId: string, folderId?: string): void => {
+    const request = scratchRequests[requestId]
+    if (!request) return
+    immediateSave.current = true
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.map((collection) =>
+        collection.id !== collectionId
+          ? collection
+          : folderId
+            ? {
+                ...collection,
+                folders: collection.folders.map((folder) =>
+                  folder.id === folderId ? { ...folder, requests: [...folder.requests, request] } : folder
+                )
+              }
+            : { ...collection, requests: [...collection.requests, request] }
+      )
+    }))
+    setScratchRequests((current) => {
+      const next = { ...current }
+      delete next[requestId]
+      return next
+    })
+    setSavingScratchRequestId(null)
+    showNotice(`Request “${request.name}” saved.`)
   }
 
   const copyCollection = async (collection: RequestCollection): Promise<void> => {
@@ -623,7 +688,11 @@ export function App(): React.JSX.Element {
       label: 'Request name',
       initialValue: request.name,
       submitLabel: 'Save name',
-      onSubmit: (name) => updateRequest({ ...request, name, updatedAt: nowIso() })
+      onSubmit: (name) => {
+        const renamed = { ...request, name, updatedAt: nowIso() }
+        if (scratchRequests[request.id]) editRequest(renamed)
+        else updateRequest(renamed)
+      }
     })
   }
 
@@ -633,6 +702,18 @@ export function App(): React.JSX.Element {
       requestsInCollection(collection).map((item) => item.name)
     )
     const duplicate = cloneRequest(request, uniqueName(`${request.name} copy`, names))
+
+    if (scratchRequests[request.id]) {
+      setScratchRequests((current) => ({ ...current, [duplicate.id]: duplicate }))
+      setOpenTabs((current) => [
+        ...current,
+        { workspaceId: workspace.id, requestId: duplicate.id, pinned: true }
+      ])
+      setSelectedRequestId(duplicate.id)
+      setSelectedCollectionId(null)
+      setResponse(null)
+      return
+    }
 
     updateWorkspace((current) => ({
       ...current,
@@ -665,6 +746,12 @@ export function App(): React.JSX.Element {
 
   const deleteRequest = (request: ApiRequest): void => {
     if (!workspace || !window.confirm(`Delete request "${request.name}"?`)) return
+
+    if (scratchRequests[request.id]) {
+      closeTab(request.id, true)
+      showNotice(`Unsaved request “${request.name}” discarded.`)
+      return
+    }
 
     const requests = workspace.collections.flatMap(requestsInCollection)
     const requestIndex = requests.findIndex((item) => item.id === request.id)
@@ -803,6 +890,11 @@ export function App(): React.JSX.Element {
     const handleRequestShortcut = (event: KeyboardEvent): void => {
       const key = event.key.toLowerCase()
       const commandPressed = event.metaKey || event.ctrlKey
+      if (commandPressed && key === 'n' && !modal && !textDialog && !closingDirtyTabId) {
+        event.preventDefault()
+        addScratchRequest()
+        return
+      }
       if (commandPressed && key === 's' && selectedRequestId && !modal && !textDialog && !closingDirtyTabId) {
         event.preventDefault()
         saveRequestDraft(selectedRequestId)
@@ -973,14 +1065,14 @@ export function App(): React.JSX.Element {
           {workspaceTabs.length > 0 && (
             <RequestTabBar
               tabs={workspaceTabs}
-              requests={Object.fromEntries(
-                workspace.collections.flatMap((collection) =>
-                  requestsInCollection(collection).map((request) => [
-                    request.id,
-                    requestDrafts[request.id] ?? request
-                  ])
-                )
-              )}
+              requests={Object.fromEntries([
+                ...workspace.collections.flatMap((collection) =>
+                  requestsInCollection(collection).map(
+                    (request) => [request.id, requestDrafts[request.id] ?? request] as const
+                  )
+                ),
+                ...Object.values(scratchRequests).map((request) => [request.id, request] as const)
+              ])}
               selectedRequestId={selectedCollection ? null : selectedRequestId}
               dirtyRequestIds={dirtyRequestIds}
               onSelect={(requestId) => {
@@ -994,6 +1086,7 @@ export function App(): React.JSX.Element {
                 )
               }
               onClose={(requestId) => closeTab(requestId)}
+              onNew={addScratchRequest}
             />
           )}
           {selectedCollection ? (
@@ -1014,7 +1107,7 @@ export function App(): React.JSX.Element {
                 request={selectedRequest}
                 sending={sending}
                 saveState={saveState}
-                dirty={Boolean(selectedRequestId && requestDrafts[selectedRequestId])}
+                dirty={Boolean(selectedRequestId && dirtyRequestIds.has(selectedRequestId))}
                 variableNames={Object.keys(variables).sort((a, b) => a.localeCompare(b))}
                 variableDetails={variableDetails}
                 activeEnvironmentName={
@@ -1112,14 +1205,29 @@ export function App(): React.JSX.Element {
             <button
               className="button primary"
               onClick={() => {
+                if (scratchRequests[closingDirtyTabId]) {
+                  setSavingScratchRequestId(closingDirtyTabId)
+                  setClosingDirtyTabId(null)
+                  return
+                }
                 saveRequestDraft(closingDirtyTabId)
                 closeTab(closingDirtyTabId, true)
               }}
             >
-              Save and close
+              {scratchRequests[closingDirtyTabId] ? 'Save to collection' : 'Save and close'}
             </button>
           </div>
         </Modal>
+      )}
+      {savingScratchRequestId && scratchRequests[savingScratchRequestId] && (
+        <SaveRequestModal
+          request={scratchRequests[savingScratchRequestId]}
+          workspace={workspace}
+          onSave={(collectionId, folderId) =>
+            saveScratchRequest(savingScratchRequestId, collectionId, folderId)
+          }
+          onClose={() => setSavingScratchRequestId(null)}
+        />
       )}
       {movingCollection && state && (
         <MoveCollectionModal
