@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0 — 2026-09-16
+
+- feat: implement sidebar resizing and folder color management (011ad99)
+- feat: implementar funcionalidade de mover requisições entre coleções e pastas (fc6c1bd)
+
 ## 0.9.0 — 2026-09-16
 
 - feat: add SaveRequestModal and enhance RequestTabBar with new request functionality (a2a9cc3)
