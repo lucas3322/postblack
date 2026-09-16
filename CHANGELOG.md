@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0 — 2026-09-16
+
+- feat: otimizar a função de mudança de cor de pasta e melhorar o estilo do menu de cores (a14b18f)
+
 ## 0.10.0 — 2026-09-16
 
 - feat: implement sidebar resizing and folder color management (011ad99)
