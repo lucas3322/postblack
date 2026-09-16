@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0 — 2026-09-16
+
+- feat: add SaveRequestModal and enhance RequestTabBar with new request functionality (a2a9cc3)
+
 ## 0.8.1 — 2026-09-14
 
 - fix: resolvendo bug de adicionar rotas na collection (ada157e)
