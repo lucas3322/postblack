@@ -11,6 +11,7 @@ import {
   Link,
   MoreHorizontal,
   MoveRight,
+  Palette,
   Pencil,
   Play,
   Plus,
@@ -22,11 +23,13 @@ import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent }
 import { createPortal } from 'react-dom'
 import type {
   ApiRequest,
+  FolderColor,
   RequestCollection,
   RequestExample,
   RequestFolder,
   Workspace
 } from '../../../shared/domain'
+import type { FolderDropTarget } from '../lib/folder-move'
 import type { RequestLocation } from '../lib/request-move'
 
 interface SidebarProps {
@@ -45,10 +48,16 @@ interface SidebarProps {
   onAddFolder: (collection: RequestCollection) => void
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onChangeFolderColor: (
+    collection: RequestCollection,
+    folder: RequestFolder,
+    color: FolderColor
+  ) => void
   onRunCollection: (collection: RequestCollection) => void
   onMoveCollection: (collection: RequestCollection) => void
   onAddRequest: (collectionId: string, folderId?: string) => void
   onMoveRequest: (requestId: string, target: RequestLocation) => void
+  onMoveFolder: (folderId: string, target: FolderDropTarget) => void
   onAddExample: (request: ApiRequest) => void
   onShareRequest: (request: ApiRequest) => void
   onCopyLink: (request: ApiRequest) => void
@@ -71,9 +80,39 @@ interface CollectionMenuState {
   y: number
 }
 
+interface FolderColorMenuState {
+  collection: RequestCollection
+  folder: RequestFolder
+  x: number
+  y: number
+}
+
 interface DraggedRequest extends RequestLocation {
   requestId: string
 }
+
+interface DraggedFolder {
+  folderId: string
+  collectionId: string
+  index: number
+}
+
+interface FolderDropIndicator extends FolderDropTarget {
+  folderId?: string
+  edge?: 'before' | 'after'
+}
+
+const FOLDER_COLOR_OPTIONS: Array<{ value: FolderColor; label: string; color: string }> = [
+  { value: 'default', label: 'Default', color: '#879ab1' },
+  { value: 'blue', label: 'Blue', color: '#4d9fff' },
+  { value: 'cyan', label: 'Cyan', color: '#35c9d7' },
+  { value: 'green', label: 'Green', color: '#42c98b' },
+  { value: 'yellow', label: 'Yellow', color: '#e6c34f' },
+  { value: 'orange', label: 'Orange', color: '#f29a49' },
+  { value: 'red', label: 'Red', color: '#ef6b73' },
+  { value: 'purple', label: 'Purple', color: '#9c7cf4' },
+  { value: 'pink', label: 'Pink', color: '#e879b2' }
+]
 
 export function Sidebar({
   workspace,
@@ -91,10 +130,14 @@ export function Sidebar({
   onAddFolder,
   onRenameFolder,
   onDeleteFolder,
+  onOpenFolderColorMenu,
+  openFolderColorMenuId,
+  onChangeFolderColor,
   onRunCollection,
   onMoveCollection,
   onAddRequest,
   onMoveRequest,
+  onMoveFolder,
   onAddExample,
   onShareRequest,
   onCopyLink,
@@ -107,8 +150,11 @@ export function Sidebar({
   const [query, setQuery] = useState('')
   const [requestMenu, setRequestMenu] = useState<RequestMenuState | null>(null)
   const [collectionMenu, setCollectionMenu] = useState<CollectionMenuState | null>(null)
+  const [folderColorMenu, setFolderColorMenu] = useState<FolderColorMenuState | null>(null)
   const [draggedRequest, setDraggedRequest] = useState<DraggedRequest | null>(null)
   const [dropTarget, setDropTarget] = useState<RequestLocation | null>(null)
+  const [draggedFolder, setDraggedFolder] = useState<DraggedFolder | null>(null)
+  const [folderDropTarget, setFolderDropTarget] = useState<FolderDropIndicator | null>(null)
   const firstMenuItem = useRef<HTMLButtonElement>(null)
   const collections = useMemo(
     () => filterCollections(workspace.collections, query),
@@ -116,12 +162,13 @@ export function Sidebar({
   )
 
   useEffect(() => {
-    if (!requestMenu && !collectionMenu) return
+    if (!requestMenu && !collectionMenu && !folderColorMenu) return
 
     firstMenuItem.current?.focus()
     const close = (): void => {
       setRequestMenu(null)
       setCollectionMenu(null)
+      setFolderColorMenu(null)
     }
     const closeOnEscape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') close()
@@ -137,7 +184,7 @@ export function Sidebar({
       window.removeEventListener('blur', close)
       window.removeEventListener('keydown', closeOnEscape)
     }
-  }, [requestMenu, collectionMenu])
+  }, [requestMenu, collectionMenu, folderColorMenu])
 
   const openRequestMenu = (request: ApiRequest, x: number, y: number): void => {
     onSelectRequest(request)
@@ -163,6 +210,17 @@ export function Sidebar({
     const collection = collectionMenu.collection
     setCollectionMenu(null)
     action(collection)
+  }
+
+  const openFolderColorMenu = (
+    collection: RequestCollection,
+    folder: RequestFolder,
+    x: number,
+    y: number
+  ): void => {
+    setRequestMenu(null)
+    setCollectionMenu(null)
+    setFolderColorMenu({ collection, folder, ...menuPosition(x, y, 150) })
   }
 
   return (
@@ -202,8 +260,16 @@ export function Sidebar({
             onDragRequest={setDraggedRequest}
             onDropTarget={setDropTarget}
             onMoveRequest={onMoveRequest}
+            draggedFolder={draggedFolder}
+            folderDropTarget={folderDropTarget}
+            onDragFolder={setDraggedFolder}
+            onFolderDropTarget={setFolderDropTarget}
+            onMoveFolder={onMoveFolder}
+            folderDraggingEnabled={!query.trim()}
             onRenameFolder={onRenameFolder}
             onDeleteFolder={onDeleteFolder}
+            onOpenFolderColorMenu={openFolderColorMenu}
+            openFolderColorMenuId={folderColorMenu?.folder.id ?? null}
             onRenameCollection={onRenameCollection}
             onOpenRequestMenu={openRequestMenu}
             onOpenCollectionMenu={openCollectionMenu}
@@ -332,6 +398,42 @@ export function Sidebar({
           </div>,
           document.body
         )}
+      {folderColorMenu &&
+        createPortal(
+          <div
+            className="folder-color-menu"
+            role="menu"
+            aria-label={`Color for ${folderColorMenu.folder.name}`}
+            style={{ left: folderColorMenu.x, top: folderColorMenu.y }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <span className="folder-color-menu-title">Folder color</span>
+            <div className="folder-color-grid">
+              {FOLDER_COLOR_OPTIONS.map((option) => {
+                const selected = (folderColorMenu.folder.color ?? 'default') === option.value
+                return (
+                  <button
+                    key={option.value}
+                    className={`folder-color-swatch${selected ? ' selected' : ''}`}
+                    style={{ '--swatch-color': option.color } as React.CSSProperties}
+                    title={option.label}
+                    aria-label={`${option.label}${selected ? ', selected' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onChangeFolderColor(
+                        folderColorMenu.collection,
+                        folderColorMenu.folder,
+                        option.value
+                      )
+                      setFolderColorMenu(null)
+                    }}
+                  />
+                )
+              })}
+            </div>
+          </div>,
+          document.body
+        )}
     </aside>
   )
 }
@@ -351,6 +453,12 @@ function CollectionNode({
   onDragRequest,
   onDropTarget,
   onMoveRequest,
+  draggedFolder,
+  folderDropTarget,
+  onDragFolder,
+  onFolderDropTarget,
+  onMoveFolder,
+  folderDraggingEnabled,
   onRenameFolder,
   onDeleteFolder,
   onRenameCollection,
@@ -371,8 +479,21 @@ function CollectionNode({
   onDragRequest: (request: DraggedRequest | null) => void
   onDropTarget: (target: RequestLocation | null) => void
   onMoveRequest: (requestId: string, target: RequestLocation) => void
+  draggedFolder: DraggedFolder | null
+  folderDropTarget: FolderDropIndicator | null
+  onDragFolder: (folder: DraggedFolder | null) => void
+  onFolderDropTarget: (target: FolderDropIndicator | null) => void
+  onMoveFolder: (folderId: string, target: FolderDropTarget) => void
+  folderDraggingEnabled: boolean
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onOpenFolderColorMenu: (
+    collection: RequestCollection,
+    folder: RequestFolder,
+    x: number,
+    y: number
+  ) => void
+  openFolderColorMenuId: string | null
   onRenameCollection: (collection: RequestCollection) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
   onOpenCollectionMenu: (collection: RequestCollection, x: number, y: number) => void
@@ -381,25 +502,48 @@ function CollectionNode({
   const collectionTarget = { collectionId: collection.id }
   const canDropOnCollection = canMoveRequest(draggedRequest, collectionTarget)
   const collectionIsTarget = sameRequestLocation(dropTarget, collectionTarget)
+  const folderCollectionTarget = { collectionId: collection.id, index: collection.folders.length }
+  const canDropFolderOnCollection = canMoveFolder(draggedFolder, folderCollectionTarget)
+  const collectionIsFolderTarget = sameFolderTarget(folderDropTarget, folderCollectionTarget)
   return (
     <div className="collection-node">
       <div
         className={`${collection.id === selectedCollectionId ? 'collection-row selected' : 'collection-row'}${
           collectionIsTarget ? ' request-drop-target' : ''
-        }`}
+        }${collectionIsFolderTarget ? ' folder-drop-target' : ''}`}
         onContextMenu={(event) => openCollectionFromContextMenu(event, collection, onOpenCollectionMenu)}
-        onDragOver={(event) => handleDragOver(event, canDropOnCollection, collectionTarget, onDropTarget)}
-        onDragLeave={(event) => handleDragLeave(event, onDropTarget)}
-        onDrop={(event) =>
-          handleRequestDrop(
-            event,
-            draggedRequest,
-            collectionTarget,
-            onMoveRequest,
-            onDragRequest,
-            onDropTarget
-          )
-        }
+        onDragOver={(event) => {
+          if (draggedFolder) {
+            handleFolderDragOver(event, canDropFolderOnCollection, folderCollectionTarget, onFolderDropTarget)
+          } else {
+            handleDragOver(event, canDropOnCollection, collectionTarget, onDropTarget)
+          }
+        }}
+        onDragLeave={(event) => {
+          handleDragLeave(event, onDropTarget)
+          handleFolderDragLeave(event, onFolderDropTarget)
+        }}
+        onDrop={(event) => {
+          if (draggedFolder) {
+            handleFolderDrop(
+              event,
+              draggedFolder,
+              folderCollectionTarget,
+              onMoveFolder,
+              onDragFolder,
+              onFolderDropTarget
+            )
+          } else {
+            handleRequestDrop(
+              event,
+              draggedRequest,
+              collectionTarget,
+              onMoveRequest,
+              onDragRequest,
+              onDropTarget
+            )
+          }
+        }}
       >
         <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle collection">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -448,16 +592,19 @@ function CollectionNode({
               onDropTarget={onDropTarget}
             />
           ))}
-          {collection.folders.map((folder) => (
+          {collection.folders.map((folder, index) => (
             <FolderNode
               key={folder.id}
               collection={collection}
               folder={folder}
+              index={index}
               selectedRequestId={selectedRequestId}
               openRequestMenuId={openRequestMenuId}
               onAddRequest={onAddRequest}
               onRenameFolder={onRenameFolder}
               onDeleteFolder={onDeleteFolder}
+              onOpenFolderColorMenu={onOpenFolderColorMenu}
+              colorMenuOpen={openFolderColorMenuId === folder.id}
               onSelectRequest={onSelectRequest}
               onSelectExample={onSelectExample}
               onOpenRequestMenu={onOpenRequestMenu}
@@ -466,6 +613,12 @@ function CollectionNode({
               onDragRequest={onDragRequest}
               onDropTarget={onDropTarget}
               onMoveRequest={onMoveRequest}
+              draggedFolder={draggedFolder}
+              folderDropTarget={folderDropTarget}
+              onDragFolder={onDragFolder}
+              onFolderDropTarget={onFolderDropTarget}
+              onMoveFolder={onMoveFolder}
+              folderDraggingEnabled={folderDraggingEnabled}
             />
           ))}
         </div>
@@ -477,11 +630,14 @@ function CollectionNode({
 function FolderNode({
   collection,
   folder,
+  index,
   selectedRequestId,
   openRequestMenuId,
   onAddRequest,
   onRenameFolder,
   onDeleteFolder,
+  onOpenFolderColorMenu,
+  colorMenuOpen,
   onSelectRequest,
   onSelectExample,
   onOpenRequestMenu,
@@ -489,15 +645,29 @@ function FolderNode({
   dropTarget,
   onDragRequest,
   onDropTarget,
-  onMoveRequest
+  onMoveRequest,
+  draggedFolder,
+  folderDropTarget,
+  onDragFolder,
+  onFolderDropTarget,
+  onMoveFolder,
+  folderDraggingEnabled
 }: {
   collection: RequestCollection
   folder: RequestFolder
+  index: number
   selectedRequestId: string | null
   openRequestMenuId: string | null
   onAddRequest: (collectionId: string, folderId?: string) => void
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
+  onOpenFolderColorMenu: (
+    collection: RequestCollection,
+    folder: RequestFolder,
+    x: number,
+    y: number
+  ) => void
+  colorMenuOpen: boolean
   onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
@@ -506,20 +676,64 @@ function FolderNode({
   onDragRequest: (request: DraggedRequest | null) => void
   onDropTarget: (target: RequestLocation | null) => void
   onMoveRequest: (requestId: string, target: RequestLocation) => void
+  draggedFolder: DraggedFolder | null
+  folderDropTarget: FolderDropIndicator | null
+  onDragFolder: (folder: DraggedFolder | null) => void
+  onFolderDropTarget: (target: FolderDropIndicator | null) => void
+  onMoveFolder: (folderId: string, target: FolderDropTarget) => void
+  folderDraggingEnabled: boolean
 }): React.JSX.Element {
   const [open, setOpen] = useState(true)
   const folderTarget = { collectionId: collection.id, folderId: folder.id }
   const canDropOnFolder = canMoveRequest(draggedRequest, folderTarget)
   const folderIsTarget = sameRequestLocation(dropTarget, folderTarget)
+  const folderIndicator =
+    folderDropTarget?.collectionId === collection.id && folderDropTarget.folderId === folder.id
+      ? folderDropTarget
+      : null
   return (
     <div className="folder-node">
       <div
-        className={`folder-row${folderIsTarget ? ' request-drop-target' : ''}`}
-        onDragOver={(event) => handleDragOver(event, canDropOnFolder, folderTarget, onDropTarget)}
-        onDragLeave={(event) => handleDragLeave(event, onDropTarget)}
-        onDrop={(event) =>
-          handleRequestDrop(event, draggedRequest, folderTarget, onMoveRequest, onDragRequest, onDropTarget)
-        }
+        className={`folder-row${folderIsTarget ? ' request-drop-target' : ''}${
+          draggedFolder?.folderId === folder.id ? ' dragging' : ''
+        }${!folderDraggingEnabled ? ' drag-disabled' : ''}${
+          folderIndicator?.edge === 'before' ? ' folder-drop-before' : ''
+        }${folderIndicator?.edge === 'after' ? ' folder-drop-after' : ''}`}
+        draggable={folderDraggingEnabled}
+        onDragStart={(event) => {
+          if (!folderDraggingEnabled) return
+          event.stopPropagation()
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('application/x-postblack-folder', folder.id)
+          event.dataTransfer.setData('text/plain', folder.id)
+          onDragRequest(null)
+          onDropTarget(null)
+          onDragFolder({ folderId: folder.id, collectionId: collection.id, index })
+        }}
+        onDragEnd={() => {
+          onDragFolder(null)
+          onFolderDropTarget(null)
+        }}
+        onDragOver={(event) => {
+          if (draggedFolder) {
+            const target = folderTargetAtPointer(event, collection.id, folder.id, index)
+            handleFolderDragOver(event, canMoveFolder(draggedFolder, target), target, onFolderDropTarget)
+          } else {
+            handleDragOver(event, canDropOnFolder, folderTarget, onDropTarget)
+          }
+        }}
+        onDragLeave={(event) => {
+          handleDragLeave(event, onDropTarget)
+          handleFolderDragLeave(event, onFolderDropTarget)
+        }}
+        onDrop={(event) => {
+          if (draggedFolder) {
+            const target = folderTargetAtPointer(event, collection.id, folder.id, index)
+            handleFolderDrop(event, draggedFolder, target, onMoveFolder, onDragFolder, onFolderDropTarget)
+          } else {
+            handleRequestDrop(event, draggedRequest, folderTarget, onMoveRequest, onDragRequest, onDropTarget)
+          }
+        }}
       >
         <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle folder">
           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -527,9 +741,9 @@ function FolderNode({
         <button
           className="folder-select"
           onDoubleClick={() => onRenameFolder(collection, folder)}
-          title="Double-click to rename folder"
+          title={folderDraggingEnabled ? 'Double-click to rename · drag to move' : 'Double-click to rename'}
         >
-          <FolderClosed size={14} />
+          <FolderClosed size={14} style={{ color: folderColor(folder.color) }} />
           <span>{folder.name}</span>
         </button>
         <button
@@ -538,6 +752,20 @@ function FolderNode({
           onClick={() => onAddRequest(collection.id, folder.id)}
         >
           <Plus size={13} />
+        </button>
+        <button
+          className="icon-button ghost folder-color-button"
+          title="Change folder color"
+          aria-label={`Change color for ${folder.name}`}
+          aria-haspopup="menu"
+          aria-expanded={colorMenuOpen}
+          onClick={(event) => {
+            event.stopPropagation()
+            const bounds = event.currentTarget.getBoundingClientRect()
+            onOpenFolderColorMenu(collection, folder, bounds.right + 4, bounds.top)
+          }}
+        >
+          <Palette size={12} />
         </button>
         <button
           className="icon-button ghost folder-delete"
@@ -741,6 +969,75 @@ function canMoveRequest(
 
 function sameRequestLocation(left: RequestLocation | null, right: RequestLocation): boolean {
   return Boolean(left && left.collectionId === right.collectionId && left.folderId === right.folderId)
+}
+
+function folderTargetAtPointer(
+  event: DragEvent<HTMLDivElement>,
+  collectionId: string,
+  folderId: string,
+  index: number
+): FolderDropIndicator {
+  const bounds = event.currentTarget.getBoundingClientRect()
+  const edge = event.clientY < bounds.top + bounds.height / 2 ? 'before' : 'after'
+  return { collectionId, folderId, edge, index: edge === 'before' ? index : index + 1 }
+}
+
+function handleFolderDragOver(
+  event: DragEvent<HTMLDivElement>,
+  canDrop: boolean,
+  target: FolderDropIndicator,
+  onDropTarget: (target: FolderDropIndicator | null) => void
+): void {
+  if (!canDrop) {
+    onDropTarget(null)
+    return
+  }
+  event.preventDefault()
+  event.stopPropagation()
+  event.dataTransfer.dropEffect = 'move'
+  onDropTarget(target)
+}
+
+function handleFolderDragLeave(
+  event: DragEvent<HTMLDivElement>,
+  onDropTarget: (target: FolderDropIndicator | null) => void
+): void {
+  const nextElement = event.relatedTarget
+  if (nextElement instanceof Node && event.currentTarget.contains(nextElement)) return
+  onDropTarget(null)
+}
+
+function handleFolderDrop(
+  event: DragEvent<HTMLDivElement>,
+  draggedFolder: DraggedFolder | null,
+  target: FolderDropTarget,
+  onMoveFolder: (folderId: string, target: FolderDropTarget) => void,
+  onDragFolder: (folder: DraggedFolder | null) => void,
+  onDropTarget: (target: FolderDropIndicator | null) => void
+): void {
+  if (!canMoveFolder(draggedFolder, target)) return
+  event.preventDefault()
+  event.stopPropagation()
+  onMoveFolder(draggedFolder.folderId, target)
+  onDragFolder(null)
+  onDropTarget(null)
+}
+
+function canMoveFolder(
+  draggedFolder: DraggedFolder | null,
+  target: FolderDropTarget
+): draggedFolder is DraggedFolder {
+  if (!draggedFolder) return false
+  if (draggedFolder.collectionId !== target.collectionId) return true
+  return target.index !== draggedFolder.index && target.index !== draggedFolder.index + 1
+}
+
+function sameFolderTarget(left: FolderDropIndicator | null, right: FolderDropTarget): boolean {
+  return Boolean(left && left.collectionId === right.collectionId && left.index === right.index)
+}
+
+function folderColor(color: FolderColor | undefined): string {
+  return FOLDER_COLOR_OPTIONS.find((option) => option.value === color)?.color ?? '#879ab1'
 }
 
 function menuPosition(x: number, y: number, height = 330): { x: number; y: number } {

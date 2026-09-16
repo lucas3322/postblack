@@ -51,4 +51,15 @@ describe('state migrations', () => {
 
     expect(migratedState.workspaces[0]?.collections[0]?.folders).toEqual([])
   })
+
+  it('adds the default color to folders created before folder colors existed', () => {
+    const currentState = createInitialState()
+    currentState.workspaces[0]!.collections[0]!.folders = [
+      { id: 'legacy-folder', name: 'Legacy', requests: [], createdAt: 'now' }
+    ]
+
+    const migratedState = appStateSchema.parse(currentState)
+
+    expect(migratedState.workspaces[0]?.collections[0]?.folders[0]?.color).toBe('default')
+  })
 })

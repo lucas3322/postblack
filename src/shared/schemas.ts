@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { FOLDER_COLORS } from './domain'
 
 const keyValueSchema = z.object({
   id: z.string(),
@@ -62,7 +63,8 @@ const requestFolderSchema = z.object({
   id: z.string(),
   name: z.string(),
   requests: z.array(requestSchema),
-  createdAt: z.string()
+  createdAt: z.string(),
+  color: z.enum(FOLDER_COLORS).default('default')
 })
 
 const workspaceSchema = z.object({

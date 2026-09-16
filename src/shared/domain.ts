@@ -57,11 +57,26 @@ export interface RequestCollection {
   createdAt: string
 }
 
+export const FOLDER_COLORS = [
+  'default',
+  'blue',
+  'cyan',
+  'green',
+  'yellow',
+  'orange',
+  'red',
+  'purple',
+  'pink'
+] as const
+
+export type FolderColor = (typeof FOLDER_COLORS)[number]
+
 export interface RequestFolder {
   id: string
   name: string
   requests: ApiRequest[]
   createdAt: string
+  color?: FolderColor
 }
 
 export interface Environment {

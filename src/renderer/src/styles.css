@@ -231,7 +231,7 @@ select {
 .workbench {
   min-height: 0;
   display: grid;
-  grid-template-columns: 48px 260px minmax(0, 1fr);
+  grid-template-columns: 48px 260px 6px minmax(0, 1fr);
 }
 .activity-bar {
   display: flex;
@@ -276,9 +276,31 @@ select {
 .sidebar {
   min-width: 0;
   padding: 12px 9px;
-  border-right: 1px solid var(--border);
   background: #0a1019;
   overflow-y: auto;
+}
+.sidebar-splitter {
+  position: relative;
+  min-width: 0;
+  cursor: col-resize;
+  touch-action: none;
+  background: linear-gradient(90deg, #0a1019 0 50%, var(--panel) 50% 100%);
+  outline: none;
+}
+.sidebar-splitter::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--blue);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.sidebar-splitter:hover::before,
+.sidebar-splitter:focus-visible::before,
+.sidebar-splitter:active::before {
+  opacity: 1;
 }
 .sidebar-search {
   height: 32px;
@@ -350,6 +372,11 @@ select {
   background: #173252;
   box-shadow: inset 0 0 0 1px var(--blue);
 }
+.collection-row.folder-drop-target {
+  color: #e8f2ff;
+  background: #173252;
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
 .collection-row:hover .icon-button.ghost {
   opacity: 1;
 }
@@ -391,11 +418,39 @@ select {
   margin-left: 5px;
 }
 .folder-row {
+  position: relative;
   height: 29px;
   display: flex;
   align-items: center;
   border-radius: 5px;
   color: #879ab1;
+  cursor: grab;
+}
+.folder-row.dragging {
+  opacity: 0.42;
+  cursor: grabbing;
+}
+.folder-row.drag-disabled {
+  cursor: default;
+}
+.folder-row.folder-drop-before::before,
+.folder-row.folder-drop-after::after {
+  position: absolute;
+  right: 4px;
+  left: 4px;
+  z-index: 2;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--blue);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--blue) 58%, transparent);
+  content: '';
+  pointer-events: none;
+}
+.folder-row.folder-drop-before::before {
+  top: -1px;
+}
+.folder-row.folder-drop-after::after {
+  bottom: -1px;
 }
 .folder-row:hover {
   color: #c9daee;

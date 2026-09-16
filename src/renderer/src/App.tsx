@@ -24,6 +24,7 @@ import {
   type AppState,
   type RequestCollection,
   type RequestExample,
+  type FolderColor,
   type RequestFolder,
   type ResponseSnapshot,
   type Workspace
@@ -37,6 +38,7 @@ import { MoveCollectionModal } from './components/MoveCollectionModal'
 import { RequestEditor } from './components/RequestEditor'
 import { RequestPaneSplitter } from './components/RequestPaneSplitter'
 import { SaveRequestModal } from './components/SaveRequestModal'
+import { SidebarSplitter } from './components/SidebarSplitter'
 import { RequestTabBar } from './components/RequestTabBar'
 import { ResponseViewer } from './components/ResponseViewer'
 import { Sidebar } from './components/Sidebar'
@@ -51,8 +53,17 @@ import {
   requestPaneBounds
 } from './lib/request-pane-size'
 import { hasTextSelection } from './lib/copy-selection'
+import { moveFolderInCollections, type FolderDropTarget } from './lib/folder-move'
 import { moveRequestInCollections, type RequestLocation } from './lib/request-move'
 import { responseForRequest } from './lib/response-selection'
+import {
+  clampSidebarWidth,
+  DEFAULT_SIDEBAR_WIDTH,
+  MAX_SIDEBAR_WIDTH,
+  MIN_SIDEBAR_WIDTH,
+  SIDEBAR_SPLITTER_WIDTH,
+  sidebarWidthPercentage
+} from './lib/sidebar-size'
 import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
 
 type SaveState = 'saved' | 'saving' | 'error'
@@ -87,10 +98,12 @@ export function App(): React.JSX.Element {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [manualUpdateCheck, setManualUpdateCheck] = useState(0)
   const [requestPaneRatio, setRequestPaneRatio] = useState(readRequestPaneRatio)
+  const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth)
   const [mainPaneHeight, setMainPaneHeight] = useState(0)
   const hydrated = useRef(false)
   const immediateSave = useRef(false)
   const mainPaneRef = useRef<HTMLElement>(null)
+  const workbenchRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const element = mainPaneRef.current
@@ -111,6 +124,17 @@ export function App(): React.JSX.Element {
     }, 150)
     return () => window.clearTimeout(timeout)
   }, [requestPaneRatio])
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem('postblack:sidebar-width', String(sidebarWidth))
+      } catch {
+        // Resizing remains available if local storage is unavailable.
+      }
+    }, 150)
+    return () => window.clearTimeout(timeout)
+  }, [sidebarWidth])
 
   useEffect(() => {
     void window.postblack.app.info().then(setAppInfo)
@@ -183,6 +207,12 @@ export function App(): React.JSX.Element {
     const bounds = mainPaneRef.current?.getBoundingClientRect()
     if (!bounds) return
     setRequestPaneHeight(clientY - bounds.top - (hasRequestTabs ? REQUEST_TAB_BAR_HEIGHT : 0))
+  }
+
+  const dragSidebar = (clientX: number): void => {
+    const bounds = workbenchRef.current?.getBoundingClientRect()
+    if (!bounds) return
+    setSidebarWidth(clampSidebarWidth(clientX - bounds.left - 48))
   }
 
   useEffect(() => {
@@ -360,7 +390,13 @@ export function App(): React.JSX.Element {
       initialValue: 'New folder',
       submitLabel: 'Create folder',
       onSubmit: (name) => {
-        const folder: RequestFolder = { id: createId('folder'), name, requests: [], createdAt: nowIso() }
+        const folder: RequestFolder = {
+          id: createId('folder'),
+          name,
+          requests: [],
+          createdAt: nowIso(),
+          color: 'default'
+        }
         updateWorkspace((current) => ({
           ...current,
           updatedAt: nowIso(),
@@ -410,6 +446,27 @@ export function App(): React.JSX.Element {
     }
   }
 
+  const changeFolderColor = (
+    collection: RequestCollection,
+    folder: RequestFolder,
+    color: FolderColor
+  ): void => {
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: current.collections.map((item) =>
+        item.id === collection.id
+          ? {
+              ...item,
+              folders: item.folders.map((entry) =>
+                entry.id === folder.id ? { ...entry, color } : entry
+              )
+            }
+          : item
+      )
+    }))
+  }
+
   const addRequest = (collectionId: string, folderId?: string): void => {
     const request = createRequest()
     updateWorkspace((current) => ({
@@ -435,6 +492,13 @@ export function App(): React.JSX.Element {
   const moveRequest = (requestId: string, target: RequestLocation): void => {
     updateWorkspace((current) => {
       const collections = moveRequestInCollections(current.collections, requestId, target)
+      return collections === current.collections ? current : { ...current, collections, updatedAt: nowIso() }
+    })
+  }
+
+  const moveFolder = (folderId: string, target: FolderDropTarget): void => {
+    updateWorkspace((current) => {
+      const collections = moveFolderInCollections(current.collections, folderId, target)
       return collections === current.collections ? current : { ...current, collections, updatedAt: nowIso() }
     })
   }
@@ -997,7 +1061,13 @@ export function App(): React.JSX.Element {
         </button>
       </header>
 
-      <div className="workbench">
+      <div
+        ref={workbenchRef}
+        className="workbench"
+        style={{
+          gridTemplateColumns: `48px ${sidebarWidth}px ${SIDEBAR_SPLITTER_WIDTH}px minmax(0, 1fr)`
+        }}
+      >
         <nav className="activity-bar">
           <button className="activity active" title="Collections">
             <Box size={19} />
@@ -1045,10 +1115,12 @@ export function App(): React.JSX.Element {
           onAddFolder={addFolder}
           onRenameFolder={renameFolder}
           onDeleteFolder={deleteFolder}
+          onChangeFolderColor={changeFolderColor}
           onRunCollection={(collection) => void runCollection(collection)}
           onMoveCollection={moveCollection}
           onAddRequest={addRequest}
           onMoveRequest={moveRequest}
+          onMoveFolder={moveFolder}
           onAddExample={addExample}
           onShareRequest={(request) => void shareRequest(request)}
           onCopyLink={(request) => void copyRequestLink(request)}
@@ -1057,6 +1129,13 @@ export function App(): React.JSX.Element {
           onDuplicateRequest={duplicateRequest}
           onDeleteRequest={deleteRequest}
           onShowHistory={() => setModal('history')}
+        />
+        <SidebarSplitter
+          percentage={sidebarWidthPercentage(sidebarWidth)}
+          onDrag={dragSidebar}
+          onAdjust={(delta) => setSidebarWidth((current) => clampSidebarWidth(current + delta))}
+          onLimit={(edge) => setSidebarWidth(edge === 'min' ? MIN_SIDEBAR_WIDTH : MAX_SIDEBAR_WIDTH)}
+          onReset={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
         />
         <main
           ref={mainPaneRef}
@@ -1657,5 +1736,16 @@ function readRequestPaneRatio(): number {
     return Number.isFinite(saved) && saved > 0 && saved < 1 ? saved : DEFAULT_REQUEST_PANE_RATIO
   } catch {
     return DEFAULT_REQUEST_PANE_RATIO
+  }
+}
+
+function readSidebarWidth(): number {
+  try {
+    const stored = window.localStorage.getItem('postblack:sidebar-width')
+    if (stored === null) return DEFAULT_SIDEBAR_WIDTH
+    const saved = Number(stored)
+    return Number.isFinite(saved) ? clampSidebarWidth(saved) : DEFAULT_SIDEBAR_WIDTH
+  } catch {
+    return DEFAULT_SIDEBAR_WIDTH
   }
 }
