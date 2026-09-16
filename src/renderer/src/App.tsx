@@ -458,9 +458,7 @@ export function App(): React.JSX.Element {
         item.id === collection.id
           ? {
               ...item,
-              folders: item.folders.map((entry) =>
-                entry.id === folder.id ? { ...entry, color } : entry
-              )
+              folders: item.folders.map((entry) => (entry.id === folder.id ? { ...entry, color } : entry))
             }
           : item
       )

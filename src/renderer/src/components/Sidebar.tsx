@@ -48,11 +48,7 @@ interface SidebarProps {
   onAddFolder: (collection: RequestCollection) => void
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
-  onChangeFolderColor: (
-    collection: RequestCollection,
-    folder: RequestFolder,
-    color: FolderColor
-  ) => void
+  onChangeFolderColor: (collection: RequestCollection, folder: RequestFolder, color: FolderColor) => void
   onRunCollection: (collection: RequestCollection) => void
   onMoveCollection: (collection: RequestCollection) => void
   onAddRequest: (collectionId: string, folderId?: string) => void
@@ -130,8 +126,6 @@ export function Sidebar({
   onAddFolder,
   onRenameFolder,
   onDeleteFolder,
-  onOpenFolderColorMenu,
-  openFolderColorMenuId,
   onChangeFolderColor,
   onRunCollection,
   onMoveCollection,
@@ -420,11 +414,7 @@ export function Sidebar({
                     aria-label={`${option.label}${selected ? ', selected' : ''}`}
                     aria-pressed={selected}
                     onClick={() => {
-                      onChangeFolderColor(
-                        folderColorMenu.collection,
-                        folderColorMenu.folder,
-                        option.value
-                      )
+                      onChangeFolderColor(folderColorMenu.collection, folderColorMenu.folder, option.value)
                       setFolderColorMenu(null)
                     }}
                   />
@@ -461,6 +451,8 @@ function CollectionNode({
   folderDraggingEnabled,
   onRenameFolder,
   onDeleteFolder,
+  onOpenFolderColorMenu,
+  openFolderColorMenuId,
   onRenameCollection,
   onOpenRequestMenu,
   onOpenCollectionMenu
@@ -487,12 +479,7 @@ function CollectionNode({
   folderDraggingEnabled: boolean
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
-  onOpenFolderColorMenu: (
-    collection: RequestCollection,
-    folder: RequestFolder,
-    x: number,
-    y: number
-  ) => void
+  onOpenFolderColorMenu: (collection: RequestCollection, folder: RequestFolder, x: number, y: number) => void
   openFolderColorMenuId: string | null
   onRenameCollection: (collection: RequestCollection) => void
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
@@ -661,12 +648,7 @@ function FolderNode({
   onAddRequest: (collectionId: string, folderId?: string) => void
   onRenameFolder: (collection: RequestCollection, folder: RequestFolder) => void
   onDeleteFolder: (collection: RequestCollection, folder: RequestFolder) => void
-  onOpenFolderColorMenu: (
-    collection: RequestCollection,
-    folder: RequestFolder,
-    x: number,
-    y: number
-  ) => void
+  onOpenFolderColorMenu: (collection: RequestCollection, folder: RequestFolder, x: number, y: number) => void
   colorMenuOpen: boolean
   onSelectRequest: (request: ApiRequest, pinned?: boolean) => void
   onSelectExample: (request: ApiRequest, example: RequestExample) => void
