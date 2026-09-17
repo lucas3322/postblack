@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0 — 2026-09-17
+
+- feat: adicionar configurações de IDE com opções de densidade, tamanho de fonte e redução de movimento (79da730)
+- feat: adicionar modal de configurações de IDE com opções de tema e visão de cores (398f6fa)
+
 ## 0.12.0 — 2026-09-16
 
 - feat: adicionar funcionalidade de mudança de cor para coleções e atualizar esquemas correspondentes (b5c24cd)
