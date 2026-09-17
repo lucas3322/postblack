@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.0 — 2026-09-17
+
+- feat: enhance cURL import/export functionality with multipart/form-data and GraphQL support (13c383c)
+
 ## 0.13.0 — 2026-09-17
 
 - feat: adicionar configurações de IDE com opções de densidade, tamanho de fonte e redução de movimento (79da730)
