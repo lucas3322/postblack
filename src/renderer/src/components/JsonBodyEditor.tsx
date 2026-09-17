@@ -11,13 +11,17 @@ interface JsonBodyEditorProps {
   onChange: (value: string) => void
   variableDetails?: Record<string, VariableDetail>
   syntax?: 'json' | 'plain'
+  placeholder?: string
+  ariaLabel?: string
 }
 
 export function JsonBodyEditor({
   value,
   onChange,
   variableDetails = {},
-  syntax = 'json'
+  syntax = 'json',
+  placeholder,
+  ariaLabel
 }: JsonBodyEditorProps): React.JSX.Element {
   const highlightRef = useRef<HTMLPreElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -100,8 +104,8 @@ export function JsonBodyEditor({
             onChange(event.target.value)
           }}
           onScroll={(event) => syncScroll(event.currentTarget)}
-          placeholder={syntax === 'json' ? '{\n  "name": "Postblack"\n}' : 'Request body'}
-          aria-label={syntax === 'json' ? 'JSON request body' : 'Request body'}
+          placeholder={placeholder ?? (syntax === 'json' ? '{\n  "name": "Postblack"\n}' : 'Request body')}
+          aria-label={ariaLabel ?? (syntax === 'json' ? 'JSON request body' : 'Request body')}
           spellCheck={false}
         />
       </div>

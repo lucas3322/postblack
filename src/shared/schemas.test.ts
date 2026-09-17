@@ -62,4 +62,19 @@ describe('state migrations', () => {
 
     expect(migratedState.workspaces[0]?.collections[0]?.folders[0]?.color).toBe('default')
   })
+
+  it('adds the extended body fields to requests created before file and GraphQL support', () => {
+    const currentState = createInitialState()
+    const request = currentState.workspaces[0]!.collections[0]!.requests[0]!
+    request.body = { mode: 'json', content: '{"legacy":true}' }
+
+    const migratedState = appStateSchema.parse(currentState)
+    const body = migratedState.workspaces[0]!.collections[0]!.requests[0]!.body
+
+    expect(body.rawType).toBe('json')
+    expect(body.formData).toEqual([])
+    expect(body.urlEncoded).toEqual([])
+    expect(body.binaryFile).toBeNull()
+    expect(body.graphql).toEqual({ query: '', variables: '' })
+  })
 })

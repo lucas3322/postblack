@@ -50,6 +50,7 @@ import {
   type ColorVisionMode,
   type IdeDensity,
   type IdeFontSize,
+  type IdePreferences,
   type IdeTheme
 } from './components/IdeSettingsModal'
 import { workspaceSchema } from '../../shared/schemas'
@@ -128,6 +129,14 @@ export function App(): React.JSX.Element {
   const immediateSave = useRef(false)
   const mainPaneRef = useRef<HTMLElement>(null)
   const workbenchRef = useRef<HTMLDivElement>(null)
+
+  const previewIdePreferences = useCallback((preferences: IdePreferences): void => {
+    setIdeTheme(preferences.theme)
+    setColorVision(preferences.colorVision)
+    setIdeDensity(preferences.density)
+    setIdeFontSize(preferences.fontSize)
+    setReduceMotion(preferences.reduceMotion)
+  }, [])
 
   useEffect(() => {
     const element = mainPaneRef.current
@@ -915,9 +924,11 @@ export function App(): React.JSX.Element {
     showNotice(`Workspace "${name}" updated.`)
   }
 
-  const importWorkspaceFile = async (file: File): Promise<void> => {
+  const importWorkspaceFile = async (): Promise<void> => {
     try {
-      const imported = workspaceSchema.parse(JSON.parse(await file.text()))
+      const selected = await window.postblack.files.importJson()
+      if (selected.canceled) return
+      const imported = workspaceSchema.parse(JSON.parse(selected.contents ?? ''))
       const importedWorkspace: Workspace = {
         ...imported,
         id: createId('workspace'),
@@ -941,6 +952,18 @@ export function App(): React.JSX.Element {
       showNotice(`Workspace "${importedWorkspace.name}" importado.`)
     } catch {
       showNotice('Não foi possível importar: o arquivo não é um workspace válido.')
+    }
+  }
+
+  const exportJsonFile = async (fileName: string, value: unknown, label: string): Promise<void> => {
+    try {
+      const result = await window.postblack.files.exportJson({
+        suggestedName: fileName,
+        contents: JSON.stringify(value, null, 2)
+      })
+      if (!result.canceled) showNotice(`${label} exportado para ${result.name ?? result.path ?? fileName}.`)
+    } catch {
+      showNotice(`Não foi possível exportar ${label.toLowerCase()}.`)
     }
   }
 
@@ -1341,12 +1364,9 @@ export function App(): React.JSX.Element {
           }}
           workspaces={state.workspaces}
           activeWorkspaceId={state.activeWorkspaceId}
+          onPreview={previewIdePreferences}
           onSave={(preferences) => {
-            setIdeTheme(preferences.theme)
-            setColorVision(preferences.colorVision)
-            setIdeDensity(preferences.density)
-            setIdeFontSize(preferences.fontSize)
-            setReduceMotion(preferences.reduceMotion)
+            previewIdePreferences(preferences)
             persistPreference('postblack:ide-theme', preferences.theme)
             persistPreference('postblack:color-vision', preferences.colorVision)
             persistPreference('postblack:ide-density', preferences.density)
@@ -1359,9 +1379,11 @@ export function App(): React.JSX.Element {
             switchWorkspace(workspaceId)
             setModal(null)
           }}
-          onExportWorkspace={(item) => downloadJson(`${safeFileName(item.name)}.postblack.json`, item)}
-          onExportAllData={() => downloadJson('postblack-backup.json', state)}
-          onImportWorkspace={(file) => void importWorkspaceFile(file)}
+          onExportWorkspace={(item) =>
+            void exportJsonFile(`${safeFileName(item.name)}.postblack.json`, item, `Workspace "${item.name}"`)
+          }
+          onExportAllData={() => void exportJsonFile('postblack-backup.json', state, 'Backup completo')}
+          onImportWorkspace={() => void importWorkspaceFile()}
           onClose={() => setModal(null)}
         />
       )}
@@ -1785,7 +1807,13 @@ function cloneRequest(request: ApiRequest, name: string): ApiRequest {
     name,
     params: request.params.map((item) => ({ ...item, id: createId('field') })),
     headers: request.headers.map((item) => ({ ...item, id: createId('field') })),
-    body: { ...request.body },
+    body: {
+      ...request.body,
+      formData: request.body.formData?.map((item) => ({ ...item, id: createId('field') })),
+      urlEncoded: request.body.urlEncoded?.map((item) => ({ ...item, id: createId('field') })),
+      binaryFile: request.body.binaryFile ? { ...request.body.binaryFile } : null,
+      graphql: request.body.graphql ? { ...request.body.graphql } : undefined
+    },
     auth: { ...request.auth },
     examples: request.examples.map((example) => ({
       ...example,
@@ -1863,17 +1891,6 @@ function persistPreference(key: string, value: string): void {
   } catch {
     // Preferences remain available for the current session.
   }
-}
-
-function downloadJson(fileName: string, value: unknown): void {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }))
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
 function safeFileName(value: string): string {

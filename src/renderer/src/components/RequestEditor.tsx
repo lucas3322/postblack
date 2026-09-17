@@ -1,13 +1,20 @@
-import { Check, Code2, Eye, EyeOff, Save, Send, Variable } from 'lucide-react'
+import { Check, Code2, Eye, EyeOff, FileUp, Plus, Save, Send, Trash2, Variable, X } from 'lucide-react'
 import { useState } from 'react'
 import { isCurlCommand } from '../../../shared/curl'
-import { type ApiRequest, type RequestAuth } from '../../../shared/domain'
+import {
+  createFormDataEntry,
+  type ApiRequest,
+  type FormDataEntry,
+  type RequestAuth,
+  type RequestBody
+} from '../../../shared/domain'
 import type { VariableDetail } from '../../../shared/variables'
 import { JsonBodyEditor } from './JsonBodyEditor'
 import { AuthValueInput } from './AuthValueInput'
 import { KeyValueEditor } from './KeyValueEditor'
 import { MethodSelect } from './MethodSelect'
 import { UrlEditor } from './UrlEditor'
+import { VariableValueInput } from './VariableValueInput'
 
 type RequestTab = 'params' | 'headers' | 'body' | 'auth'
 
@@ -140,7 +147,13 @@ export function RequestEditor({
           />
         )}
         {tab === 'body' && (
-          <BodyEditor request={request} variableDetails={variableDetails} onChange={patch} />
+          <BodyEditor
+            request={request}
+            variableNames={variableNames}
+            variableDetails={variableDetails}
+            onOpenVariables={onOpenVariables}
+            onChange={patch}
+          />
         )}
         {tab === 'auth' && (
           <AuthEditor
@@ -179,44 +192,268 @@ function Tab({
 
 function BodyEditor({
   request,
+  variableNames,
   variableDetails,
+  onOpenVariables,
   onChange
 }: {
   request: ApiRequest
+  variableNames: string[]
   variableDetails: Record<string, VariableDetail>
+  onOpenVariables: () => void
   onChange: (patch: Partial<ApiRequest>) => void
 }): React.JSX.Element {
+  const body = request.body
+  const visibleMode = body.mode === 'json' || body.mode === 'text' ? 'raw' : body.mode
+  const rawType = body.mode === 'json' ? 'json' : body.mode === 'text' ? 'text' : (body.rawType ?? 'json')
+  const patchBody = (changes: Partial<RequestBody>): void => onChange({ body: { ...body, ...changes } })
+  const selectFile = async (entry?: FormDataEntry): Promise<void> => {
+    const result = await window.postblack.files.pickFile()
+    if (result.canceled || !result.file) return
+    if (entry) {
+      patchBody({
+        formData: (body.formData ?? []).map((item) =>
+          item.id === entry.id ? { ...item, file: result.file ?? null, value: result.file?.name ?? '' } : item
+        )
+      })
+      return
+    }
+    patchBody({ binaryFile: result.file })
+  }
+
   return (
     <div className="body-editor">
       <div className="body-modes">
-        {(['none', 'json', 'text', 'form-urlencoded'] as const).map((mode) => (
+        {(
+          [
+            ['none', 'none'],
+            ['form-data', 'form-data'],
+            ['form-urlencoded', 'x-www-form-urlencoded'],
+            ['raw', 'raw'],
+            ['binary', 'binary'],
+            ['graphql', 'GraphQL']
+          ] as const
+        ).map(([mode, label]) => (
           <label key={mode}>
-            <input
-              type="radio"
-              checked={request.body.mode === mode}
-              onChange={() => onChange({ body: { ...request.body, mode } })}
-            />{' '}
-            {mode}
+            <input type="radio" checked={visibleMode === mode} onChange={() => patchBody({ mode })} /> {label}
           </label>
         ))}
       </div>
-      {request.body.mode === 'json' && (
-        <JsonBodyEditor
-          value={request.body.content}
+
+      {visibleMode === 'form-data' && (
+        <FormDataBodyEditor
+          rows={body.formData ?? []}
+          variableNames={variableNames}
           variableDetails={variableDetails}
-          onChange={(content) => onChange({ body: { ...request.body, content } })}
+          onOpenVariables={onOpenVariables}
+          onSelectFile={selectFile}
+          onChange={(formData) => patchBody({ formData })}
         />
       )}
-      {request.body.mode !== 'none' && request.body.mode !== 'json' && (
-        <JsonBodyEditor
-          syntax="plain"
-          value={request.body.content}
+
+      {visibleMode === 'form-urlencoded' && (
+        <KeyValueEditor
+          rows={body.urlEncoded ?? []}
+          onChange={(urlEncoded) => patchBody({ urlEncoded })}
+          keyPlaceholder="Key"
+          valuePlaceholder="Value"
+          variableNames={variableNames}
           variableDetails={variableDetails}
-          onChange={(content) => onChange({ body: { ...request.body, content } })}
+          onOpenVariables={onOpenVariables}
         />
+      )}
+
+      {visibleMode === 'raw' && (
+        <div className="raw-body-editor">
+          <label className="raw-body-type">
+            Formato
+            <select
+              value={rawType}
+              onChange={(event) =>
+                patchBody({ mode: 'raw', rawType: event.target.value as NonNullable<RequestBody['rawType']> })
+              }
+            >
+              <option value="json">JSON</option>
+              <option value="text">Texto</option>
+              <option value="javascript">JavaScript</option>
+              <option value="html">HTML</option>
+              <option value="xml">XML</option>
+            </select>
+          </label>
+          <JsonBodyEditor
+            syntax={rawType === 'json' ? 'json' : 'plain'}
+            value={body.content}
+            variableDetails={variableDetails}
+            onChange={(content) => patchBody({ mode: 'raw', content })}
+          />
+        </div>
+      )}
+
+      {visibleMode === 'binary' && (
+        <div className="binary-body-picker">
+          <FileUp size={24} />
+          {body.binaryFile ? (
+            <>
+              <div>
+                <strong>{body.binaryFile.name}</strong>
+                <small>
+                  {formatFileSize(body.binaryFile.size)} · {body.binaryFile.mimeType}
+                </small>
+              </div>
+              <button type="button" className="button secondary" onClick={() => void selectFile()}>
+                Trocar arquivo
+              </button>
+              <button
+                type="button"
+                className="icon-button danger"
+                title="Remover arquivo"
+                onClick={() => patchBody({ binaryFile: null })}
+              >
+                <X size={15} />
+              </button>
+            </>
+          ) : (
+            <>
+              <div>
+                <strong>Nenhum arquivo selecionado</strong>
+                <small>O conteúdo do arquivo será enviado como body da requisição.</small>
+              </div>
+              <button type="button" className="button secondary" onClick={() => void selectFile()}>
+                Selecionar arquivo
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {visibleMode === 'graphql' && (
+        <div className="graphql-body-editor">
+          <label>
+            Query
+            <JsonBodyEditor
+              syntax="plain"
+              value={body.graphql?.query ?? ''}
+              placeholder={'query GetUser {\n  user { id name }\n}'}
+              ariaLabel="GraphQL query"
+              variableDetails={variableDetails}
+              onChange={(query) =>
+                patchBody({ graphql: { query, variables: body.graphql?.variables ?? '' } })
+              }
+            />
+          </label>
+          <label>
+            Variables (JSON)
+            <JsonBodyEditor
+              value={body.graphql?.variables ?? ''}
+              placeholder={'{\n  "id": "{{user_id}}"\n}'}
+              ariaLabel="GraphQL variables"
+              variableDetails={variableDetails}
+              onChange={(variables) =>
+                patchBody({ graphql: { query: body.graphql?.query ?? '', variables } })
+              }
+            />
+          </label>
+        </div>
       )}
     </div>
   )
+}
+
+function FormDataBodyEditor({
+  rows,
+  variableNames,
+  variableDetails,
+  onOpenVariables,
+  onSelectFile,
+  onChange
+}: {
+  rows: FormDataEntry[]
+  variableNames: string[]
+  variableDetails: Record<string, VariableDetail>
+  onOpenVariables: () => void
+  onSelectFile: (entry: FormDataEntry) => Promise<void>
+  onChange: (rows: FormDataEntry[]) => void
+}): React.JSX.Element {
+  const update = (id: string, patch: Partial<FormDataEntry>): void =>
+    onChange(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+
+  return (
+    <div className="form-data-editor">
+      <div className="form-data-heading">
+        <span>Ativo</span>
+        <span>Key</span>
+        <span>Tipo</span>
+        <span>Value</span>
+        <span>Descrição</span>
+        <span />
+      </div>
+      {!rows.length && <div className="empty-inline">Nenhum campo ainda. Adicione um abaixo.</div>}
+      {rows.map((row) => (
+        <div className="form-data-row" key={row.id}>
+          <input
+            type="checkbox"
+            checked={row.enabled}
+            onChange={(event) => update(row.id, { enabled: event.target.checked })}
+          />
+          <input
+            value={row.key}
+            placeholder="Key"
+            onChange={(event) => update(row.id, { key: event.target.value })}
+          />
+          <select
+            value={row.type}
+            onChange={(event) => {
+              const type = event.target.value as FormDataEntry['type']
+              update(row.id, {
+                type,
+                file: type === 'file' ? row.file : null,
+                value: type === 'file' ? '' : row.value
+              })
+            }}
+          >
+            <option value="text">Text</option>
+            <option value="file">File</option>
+          </select>
+          {row.type === 'file' ? (
+            <button type="button" className="form-data-file" onClick={() => void onSelectFile(row)}>
+              <FileUp size={14} /> {row.file?.name ?? 'Selecionar arquivo'}
+            </button>
+          ) : (
+            <VariableValueInput
+              value={row.value}
+              placeholder="Value"
+              variableNames={variableNames}
+              variableDetails={variableDetails}
+              onChange={(value) => update(row.id, { value })}
+              onOpenVariables={onOpenVariables}
+            />
+          )}
+          <input
+            value={row.description}
+            placeholder="Descrição"
+            onChange={(event) => update(row.id, { description: event.target.value })}
+          />
+          <button
+            type="button"
+            className="icon-button danger"
+            title="Excluir campo"
+            onClick={() => onChange(rows.filter((item) => item.id !== row.id))}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ))}
+      <button type="button" className="add-row" onClick={() => onChange([...rows, createFormDataEntry()])}>
+        <Plus size={14} /> Adicionar campo
+      </button>
+    </div>
+  )
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function AuthEditor({

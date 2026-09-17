@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Workspace } from '../../../shared/domain'
 import { Modal } from './Modal'
 
@@ -19,10 +19,11 @@ interface IdeSettingsModalProps {
   preferences: IdePreferences
   workspaces: Workspace[]
   activeWorkspaceId: string | null
+  onPreview: (preferences: IdePreferences) => void
   onSave: (preferences: IdePreferences) => void
   onActivateWorkspace: (workspaceId: string) => void
   onExportWorkspace: (workspace: Workspace) => void
-  onImportWorkspace: (file: File) => void
+  onImportWorkspace: () => void
   onExportAllData: () => void
   onClose: () => void
 }
@@ -30,12 +31,21 @@ interface IdeSettingsModalProps {
 type SettingsSection = 'general' | 'appearance' | 'accessibility' | 'workspaces' | 'data'
 
 export function IdeSettingsModal(props: IdeSettingsModalProps): React.JSX.Element {
+  const initialPreferences = useRef(props.preferences)
   const [section, setSection] = useState<SettingsSection>('general')
   const [draft, setDraft] = useState(props.preferences)
-  const fileInput = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    props.onPreview(draft)
+  }, [draft, props.onPreview])
+
+  const closeWithoutSaving = (): void => {
+    props.onPreview(initialPreferences.current)
+    props.onClose()
+  }
 
   return (
-    <Modal title="Configurações do Postblack" onClose={props.onClose} wide>
+    <Modal title="Configurações do Postblack" onClose={closeWithoutSaving} wide>
       <div className="ide-settings-layout">
         <nav className="ide-settings-nav" aria-label="Seções das configurações">
           <SettingsNav section="general" current={section} label="Geral" onSelect={setSection} />
@@ -170,7 +180,10 @@ export function IdeSettingsModal(props: IdeSettingsModalProps): React.JSX.Elemen
                           <button
                             type="button"
                             className="button secondary"
-                            onClick={() => props.onActivateWorkspace(workspace.id)}
+                            onClick={() => {
+                              closeWithoutSaving()
+                              props.onActivateWorkspace(workspace.id)
+                            }}
                           >
                             Abrir
                           </button>
@@ -193,23 +206,19 @@ export function IdeSettingsModal(props: IdeSettingsModalProps): React.JSX.Elemen
           {section === 'data' && (
             <SettingsPanel title="Dados" description="Faça backup ou restaure workspaces em formato JSON.">
               <div className="settings-data-actions">
-                <button type="button" className="button secondary" onClick={() => fileInput.current?.click()}>
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => {
+                    closeWithoutSaving()
+                    props.onImportWorkspace()
+                  }}
+                >
                   Importar workspace
                 </button>
                 <button type="button" className="button secondary" onClick={props.onExportAllData}>
                   Exportar todos os dados
                 </button>
-                <input
-                  ref={fileInput}
-                  type="file"
-                  accept="application/json,.json"
-                  hidden
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (file) props.onImportWorkspace(file)
-                    event.target.value = ''
-                  }}
-                />
               </div>
               <p className="settings-note">
                 A importação cria uma cópia independente e não sobrescreve seus workspaces atuais.
@@ -218,7 +227,7 @@ export function IdeSettingsModal(props: IdeSettingsModalProps): React.JSX.Elemen
           )}
 
           <div className="modal-actions ide-settings-actions">
-            <button className="button secondary" type="button" onClick={props.onClose}>
+            <button className="button secondary" type="button" onClick={closeWithoutSaving}>
               Cancelar
             </button>
             <button className="button primary" type="submit">
@@ -243,7 +252,12 @@ function SettingsNav({
   onSelect: (section: SettingsSection) => void
 }): React.JSX.Element {
   return (
-    <button type="button" className={current === section ? 'active' : ''} onClick={() => onSelect(section)}>
+    <button
+      type="button"
+      className={current === section ? 'active' : ''}
+      aria-current={current === section ? 'page' : undefined}
+      onClick={() => onSelect(section)}
+    >
       {label}
     </button>
   )
@@ -282,6 +296,7 @@ function ThemeChoice({
     <button
       type="button"
       className={`theme-choice ${value}${selected === value ? ' selected' : ''}`}
+      aria-pressed={selected === value}
       onClick={() => onSelect(value)}
     >
       <span className="theme-choice-preview">

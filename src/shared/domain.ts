@@ -1,7 +1,9 @@
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
 export type HttpMethod = (typeof HTTP_METHODS)[number]
-export type BodyMode = 'none' | 'json' | 'text' | 'form-urlencoded'
+export type BodyMode =
+  'none' | 'form-data' | 'form-urlencoded' | 'raw' | 'binary' | 'graphql' | 'json' | 'text'
+export type RawBodyType = 'json' | 'text' | 'javascript' | 'html' | 'xml'
 export type AuthType = 'none' | 'bearer' | 'basic' | 'api-key'
 
 export interface KeyValue {
@@ -25,6 +27,27 @@ export interface RequestAuth {
 export interface RequestBody {
   mode: BodyMode
   content: string
+  rawType?: RawBodyType
+  formData?: FormDataEntry[]
+  urlEncoded?: KeyValue[]
+  binaryFile?: NativeFileReference | null
+  graphql?: {
+    query: string
+    variables: string
+  }
+}
+
+export interface NativeFileReference {
+  path: string
+  name: string
+  size: number
+  mimeType: string
+}
+
+export interface FormDataEntry extends KeyValue {
+  type: 'text' | 'file'
+  description: string
+  file: NativeFileReference | null
 }
 
 export interface ApiRequest {
@@ -157,6 +180,23 @@ export interface UpdateProgress {
   totalBytes: number
 }
 
+export interface JsonFileExportInput {
+  suggestedName: string
+  contents: string
+}
+
+export interface JsonFileResult {
+  canceled: boolean
+  path?: string
+  name?: string
+  contents?: string
+}
+
+export interface NativeFilePickerResult {
+  canceled: boolean
+  file?: NativeFileReference
+}
+
 export interface PostblackApi {
   loadState: () => Promise<AppState>
   saveState: (state: AppState) => Promise<void>
@@ -165,6 +205,11 @@ export interface PostblackApi {
   generateCurl: (input: ExecuteRequestInput) => Promise<string>
   clipboard: {
     copyText: (text: string) => Promise<void>
+  }
+  files: {
+    exportJson: (input: JsonFileExportInput) => Promise<JsonFileResult>
+    importJson: () => Promise<JsonFileResult>
+    pickFile: () => Promise<NativeFilePickerResult>
   }
   app: {
     info: () => Promise<AppInfo>
@@ -189,6 +234,15 @@ export function createKeyValue(key = '', value = ''): KeyValue {
   return { id: createId('field'), key, value, enabled: true }
 }
 
+export function createFormDataEntry(key = '', value = ''): FormDataEntry {
+  return {
+    ...createKeyValue(key, value),
+    type: 'text',
+    description: '',
+    file: null
+  }
+}
+
 export function createRequest(name = 'New request'): ApiRequest {
   const timestamp = nowIso()
   return {
@@ -198,7 +252,15 @@ export function createRequest(name = 'New request'): ApiRequest {
     url: '',
     params: [],
     headers: [],
-    body: { mode: 'none', content: '' },
+    body: {
+      mode: 'none',
+      content: '',
+      rawType: 'json',
+      formData: [],
+      urlEncoded: [],
+      binaryFile: null,
+      graphql: { query: '', variables: '' }
+    },
     auth: {
       type: 'none',
       token: '',

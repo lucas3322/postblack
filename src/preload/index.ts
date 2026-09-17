@@ -1,5 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppState, ExecuteRequestInput, PostblackApi, UpdateProgress } from '../shared/domain'
+import type {
+  AppState,
+  ExecuteRequestInput,
+  JsonFileExportInput,
+  PostblackApi,
+  UpdateProgress
+} from '../shared/domain'
 
 const channels = {
   loadState: 'postblack:state:load',
@@ -8,6 +14,9 @@ const channels = {
   importCurl: 'postblack:curl:import',
   generateCurl: 'postblack:curl:generate',
   copyText: 'postblack:clipboard:copy-text',
+  exportJson: 'postblack:files:export-json',
+  importJson: 'postblack:files:import-json',
+  pickFile: 'postblack:files:pick',
   appInfo: 'postblack:app:info',
   updateCheck: 'postblack:update:check',
   updateDownload: 'postblack:update:download',
@@ -23,6 +32,11 @@ const api: PostblackApi = {
   generateCurl: (input: ExecuteRequestInput) => ipcRenderer.invoke(channels.generateCurl, input),
   clipboard: {
     copyText: (text: string) => ipcRenderer.invoke(channels.copyText, text)
+  },
+  files: {
+    exportJson: (input: JsonFileExportInput) => ipcRenderer.invoke(channels.exportJson, input),
+    importJson: () => ipcRenderer.invoke(channels.importJson),
+    pickFile: () => ipcRenderer.invoke(channels.pickFile)
   },
   app: {
     info: () => ipcRenderer.invoke(channels.appInfo)

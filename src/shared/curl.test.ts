@@ -12,7 +12,8 @@ describe('cURL conversion', () => {
     expect(result.request.url).toBe('{{base_url}}/users')
     expect(result.request.auth.type).toBe('bearer')
     expect(result.request.auth.token).toBe('{{token}}')
-    expect(result.request.body.mode).toBe('json')
+    expect(result.request.body.mode).toBe('raw')
+    expect(result.request.body.rawType).toBe('json')
     expect(result.request.body.content).toBe('{"name":"Ada"}')
     expect(result.warnings).toEqual([])
   })
@@ -54,5 +55,38 @@ describe('cURL conversion', () => {
   it('distinguishes complete cURL commands from ordinary URLs', () => {
     expect(isCurlCommand('  curl --location https://example.com')).toBe(true)
     expect(isCurlCommand('https://example.com')).toBe(false)
+  })
+
+  it('imports and generates multipart file fields', () => {
+    const imported = importCurl(
+      "curl https://example.com/upload --form 'title=Document' --form 'file=@/tmp/report.pdf'"
+    )
+
+    expect(imported.request.body.mode).toBe('form-data')
+    expect(imported.request.body.formData).toEqual([
+      expect.objectContaining({ key: 'title', value: 'Document', type: 'text' }),
+      expect.objectContaining({
+        key: 'file',
+        type: 'file',
+        file: expect.objectContaining({ name: 'report.pdf' })
+      })
+    ])
+
+    const generated = generateCurl(imported.request)
+    expect(generated).toContain('--form title=Document')
+    expect(generated).toContain('--form file=@/tmp/report.pdf')
+  })
+
+  it('generates GraphQL payloads with resolved variables', () => {
+    const request = createRequest('GraphQL')
+    request.method = 'POST'
+    request.url = 'https://example.com/graphql'
+    request.body.mode = 'graphql'
+    request.body.graphql = { query: 'query { user(id: "{{id}}") { name } }', variables: '{}' }
+
+    const command = generateCurl(request, { id: '42' })
+
+    expect(command).toContain('query { user(id: \\"42\\") { name } }')
+    expect(command).toContain('"variables":{}')
   })
 })

@@ -16,6 +16,7 @@ describe('IdeSettingsModal', () => {
         }}
         workspaces={[createWorkspace('Workspace local')]}
         activeWorkspaceId={null}
+        onPreview={() => undefined}
         onSave={() => undefined}
         onActivateWorkspace={() => undefined}
         onExportWorkspace={() => undefined}

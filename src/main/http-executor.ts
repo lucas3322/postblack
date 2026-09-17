@@ -1,4 +1,5 @@
 import { performance } from 'node:perf_hooks'
+import { readFile } from 'node:fs/promises'
 import {
   createId,
   createKeyValue,
@@ -9,12 +10,13 @@ import {
 import { findUnresolvedVariables, resolveVariables } from '../shared/variables'
 
 const REQUEST_TIMEOUT_MS = 30_000
+const MAX_UPLOAD_BYTES = 250 * 1024 * 1024
 
 export async function executeHttpRequest(input: ExecuteRequestInput): Promise<ResponseSnapshot> {
   const { request, variables } = input
   const url = buildUrl(request.url, request.params, request.auth, variables)
   const headers = buildHeaders(request.headers, request.auth, variables)
-  const body = buildBody(request.body.mode, request.body.content, headers, variables)
+  const body = await buildBody(request.body, headers, variables)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   const startedAt = performance.now()
@@ -117,16 +119,82 @@ function buildHeaders(
   return headers
 }
 
-function buildBody(
-  mode: ExecuteRequestInput['request']['body']['mode'],
-  content: string,
+async function buildBody(
+  body: ExecuteRequestInput['request']['body'],
   headers: Headers,
   variables: Record<string, string>
-): string | undefined {
+): Promise<BodyInit | undefined> {
+  const { mode, content } = body
   if (mode === 'none') return undefined
-  if (mode === 'json' && !headers.has('content-type')) headers.set('Content-Type', 'application/json')
-  if (mode === 'form-urlencoded' && !headers.has('content-type')) {
-    headers.set('Content-Type', 'application/x-www-form-urlencoded')
+
+  if (mode === 'form-data') {
+    headers.delete('content-type')
+    const form = new FormData()
+    let totalFileBytes = 0
+    for (const entry of (body.formData ?? []).filter((item) => item.enabled && item.key.trim())) {
+      const key = resolveVariables(entry.key, variables)
+      if (entry.type === 'file') {
+        if (!entry.file) continue
+        totalFileBytes += entry.file.size
+        if (totalFileBytes > MAX_UPLOAD_BYTES)
+          throw new Error('Os arquivos excedem o limite total de 250 MB.')
+        const contents = await readFile(entry.file.path)
+        form.append(key, new Blob([contents], { type: entry.file.mimeType }), entry.file.name)
+      } else {
+        form.append(key, resolveVariables(entry.value, variables))
+      }
+    }
+    return form
+  }
+
+  if (mode === 'binary') {
+    if (!body.binaryFile) throw new Error('Selecione um arquivo para enviar no body binário.')
+    if (body.binaryFile.size > MAX_UPLOAD_BYTES) throw new Error('O arquivo excede o limite de 250 MB.')
+    if (!headers.has('content-type')) headers.set('Content-Type', body.binaryFile.mimeType)
+    return new Blob([await readFile(body.binaryFile.path)], { type: body.binaryFile.mimeType })
+  }
+
+  if (mode === 'graphql') {
+    if (!headers.has('content-type')) headers.set('Content-Type', 'application/json')
+    const variablesText = resolveVariables(body.graphql?.variables ?? '', variables).trim()
+    let graphqlVariables: unknown = {}
+    if (variablesText) {
+      try {
+        graphqlVariables = JSON.parse(variablesText)
+      } catch {
+        throw new Error('As variables do GraphQL precisam ser um JSON válido.')
+      }
+    }
+    return JSON.stringify({
+      query: resolveVariables(body.graphql?.query ?? '', variables),
+      variables: graphqlVariables
+    })
+  }
+
+  if (mode === 'form-urlencoded') {
+    if (!headers.has('content-type')) {
+      headers.set('Content-Type', 'application/x-www-form-urlencoded')
+    }
+    const rows = body.urlEncoded ?? []
+    if (rows.length) {
+      const params = new URLSearchParams()
+      for (const entry of rows.filter((item) => item.enabled && item.key.trim())) {
+        params.append(resolveVariables(entry.key, variables), resolveVariables(entry.value, variables))
+      }
+      return params.toString()
+    }
+  }
+
+  const rawType = mode === 'json' ? 'json' : mode === 'text' ? 'text' : (body.rawType ?? 'json')
+  if (!headers.has('content-type')) {
+    const contentType = {
+      json: 'application/json',
+      text: 'text/plain',
+      javascript: 'application/javascript',
+      html: 'text/html',
+      xml: 'application/xml'
+    }[rawType]
+    headers.set('Content-Type', contentType)
   }
   return resolveVariables(content, variables)
 }

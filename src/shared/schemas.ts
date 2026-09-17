@@ -9,6 +9,19 @@ const keyValueSchema = z.object({
   secret: z.boolean().optional()
 })
 
+const nativeFileReferenceSchema = z.object({
+  path: z.string(),
+  name: z.string(),
+  size: z.number().nonnegative(),
+  mimeType: z.string()
+})
+
+const formDataEntrySchema = keyValueSchema.extend({
+  type: z.enum(['text', 'file']),
+  description: z.string().default(''),
+  file: nativeFileReferenceSchema.nullable().default(null)
+})
+
 const authSchema = z.object({
   type: z.enum(['none', 'bearer', 'basic', 'api-key']),
   token: z.string(),
@@ -52,7 +65,15 @@ export const requestSchema = z.object({
   url: z.string(),
   params: z.array(keyValueSchema),
   headers: z.array(keyValueSchema),
-  body: z.object({ mode: z.enum(['none', 'json', 'text', 'form-urlencoded']), content: z.string() }),
+  body: z.object({
+    mode: z.enum(['none', 'form-data', 'form-urlencoded', 'raw', 'binary', 'graphql', 'json', 'text']),
+    content: z.string(),
+    rawType: z.enum(['json', 'text', 'javascript', 'html', 'xml']).default('json'),
+    formData: z.array(formDataEntrySchema).default([]),
+    urlEncoded: z.array(keyValueSchema).default([]),
+    binaryFile: nativeFileReferenceSchema.nullable().default(null),
+    graphql: z.object({ query: z.string(), variables: z.string() }).default({ query: '', variables: '' })
+  }),
   auth: authSchema,
   examples: z.array(requestExampleSchema).default([]),
   createdAt: z.string(),

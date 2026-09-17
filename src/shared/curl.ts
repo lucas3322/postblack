@@ -1,5 +1,6 @@
 import {
   HTTP_METHODS,
+  createFormDataEntry,
   createKeyValue,
   createRequest,
   type ApiRequest,
@@ -73,9 +74,53 @@ export function importCurl(command: string): ImportedCurl {
           )
         )
       index += 1
+    } else if (token === '-F' || token === '--form') {
+      const formValue = nextValue(tokens, index, token)
+      const separator = formValue.indexOf('=')
+      if (separator > 0) {
+        const entry = createFormDataEntry(formValue.slice(0, separator), formValue.slice(separator + 1))
+        if (entry.value.startsWith('@')) {
+          const path = entry.value.slice(1)
+          entry.type = 'file'
+          entry.file = {
+            path,
+            name: path.split(/[\\/]/).at(-1) ?? 'file',
+            size: 0,
+            mimeType: 'application/octet-stream'
+          }
+        }
+        request.body.formData?.push(entry)
+        request.body.mode = 'form-data'
+      }
+      if (!explicitMethod) request.method = 'POST'
+      index += 1
+    } else if (token === '--data-urlencode') {
+      const pair = nextValue(tokens, index, token)
+      const separator = pair.indexOf('=')
+      request.body.urlEncoded?.push(
+        createKeyValue(
+          separator < 0 ? pair : pair.slice(0, separator),
+          separator < 0 ? '' : pair.slice(separator + 1)
+        )
+      )
+      request.body.mode = 'form-urlencoded'
+      if (!explicitMethod) request.method = 'POST'
+      index += 1
     } else if (['-d', '--data', '--data-raw', '--data-binary'].includes(token)) {
       request.body.content = nextValue(tokens, index, token)
-      request.body.mode = looksLikeJson(request.body.content) ? 'json' : 'text'
+      if (token === '--data-binary' && request.body.content.startsWith('@')) {
+        const path = request.body.content.slice(1)
+        request.body.mode = 'binary'
+        request.body.binaryFile = {
+          path,
+          name: path.split(/[\\/]/).at(-1) ?? 'file',
+          size: 0,
+          mimeType: 'application/octet-stream'
+        }
+      } else {
+        request.body.mode = 'raw'
+        request.body.rawType = looksLikeJson(request.body.content) ? 'json' : 'text'
+      }
       if (!explicitMethod) request.method = 'POST'
       index += 1
     } else if (token === '-u' || token === '--user') {
@@ -155,6 +200,30 @@ export function generateCurl(request: ApiRequest, variables: Record<string, stri
   const url = requestUrlWithParams(request, variables)
   const lines = [`curl --request ${request.method}`, `  ${shellQuote(url)}`]
   const headers = request.headers.filter((header) => header.enabled && header.key.trim())
+  const hasContentType = headers.some((header) => header.key.toLowerCase() === 'content-type')
+
+  if (!hasContentType) {
+    const rawType = request.body.mode === 'json' ? 'json' : (request.body.rawType ?? 'text')
+    const inferredContentType =
+      request.body.mode === 'graphql' ||
+      (request.body.mode === 'raw' && rawType === 'json') ||
+      request.body.mode === 'json'
+        ? 'application/json'
+        : request.body.mode === 'form-urlencoded'
+          ? 'application/x-www-form-urlencoded'
+          : request.body.mode === 'binary' && request.body.binaryFile
+            ? request.body.binaryFile.mimeType
+            : request.body.mode === 'raw' || request.body.mode === 'text'
+              ? {
+                  text: 'text/plain',
+                  javascript: 'application/javascript',
+                  html: 'text/html',
+                  xml: 'application/xml',
+                  json: 'application/json'
+                }[rawType]
+              : null
+    if (inferredContentType) headers.push(createKeyValue('Content-Type', inferredContentType))
+  }
 
   if (request.auth.type === 'bearer') {
     headers.push(createKeyValue('Authorization', `Bearer ${resolveVariables(request.auth.token, variables)}`))
@@ -170,7 +239,42 @@ export function generateCurl(request: ApiRequest, variables: Record<string, stri
   for (const header of headers) {
     lines.push(`  --header ${shellQuote(`${header.key}: ${resolveVariables(header.value, variables)}`)}`)
   }
-  if (request.body.mode !== 'none' && request.body.content) {
+  if (request.body.mode === 'form-data') {
+    for (const entry of (request.body.formData ?? []).filter((item) => item.enabled && item.key.trim())) {
+      const value =
+        entry.type === 'file' && entry.file ? `@${entry.file.path}` : resolveVariables(entry.value, variables)
+      lines.push(`  --form ${shellQuote(`${resolveVariables(entry.key, variables)}=${value}`)}`)
+    }
+  } else if (request.body.mode === 'form-urlencoded') {
+    const rows = request.body.urlEncoded ?? []
+    if (rows.length) {
+      for (const entry of rows.filter((item) => item.enabled && item.key.trim())) {
+        lines.push(
+          `  --data-urlencode ${shellQuote(`${resolveVariables(entry.key, variables)}=${resolveVariables(entry.value, variables)}`)}`
+        )
+      }
+    } else if (request.body.content) {
+      lines.push(`  --data-raw ${shellQuote(resolveVariables(request.body.content, variables))}`)
+    }
+  } else if (request.body.mode === 'binary' && request.body.binaryFile) {
+    lines.push(`  --data-binary ${shellQuote(`@${request.body.binaryFile.path}`)}`)
+  } else if (request.body.mode === 'graphql') {
+    const variablesText = resolveVariables(request.body.graphql?.variables ?? '', variables).trim()
+    let graphqlVariables: unknown = {}
+    try {
+      graphqlVariables = variablesText ? JSON.parse(variablesText) : {}
+    } catch {
+      graphqlVariables = variablesText
+    }
+    lines.push(
+      `  --data-raw ${shellQuote(
+        JSON.stringify({
+          query: resolveVariables(request.body.graphql?.query ?? '', variables),
+          variables: graphqlVariables
+        })
+      )}`
+    )
+  } else if (request.body.mode !== 'none' && request.body.content) {
     lines.push(`  --data-raw ${shellQuote(resolveVariables(request.body.content, variables))}`)
   }
   return lines.join(' \\\n')
