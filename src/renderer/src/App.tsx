@@ -45,7 +45,14 @@ import { Sidebar } from './components/Sidebar'
 import { TextInputModal } from './components/TextInputModal'
 import { UpdateNotice } from './components/UpdateNotice'
 import { WorkspaceSettingsModal } from './components/WorkspaceSettingsModal'
-import { IdeSettingsModal, type ColorVisionMode, type IdeTheme } from './components/IdeSettingsModal'
+import {
+  IdeSettingsModal,
+  type ColorVisionMode,
+  type IdeDensity,
+  type IdeFontSize,
+  type IdeTheme
+} from './components/IdeSettingsModal'
+import { workspaceSchema } from '../../shared/schemas'
 import {
   availablePaneHeight,
   clampRequestPaneHeight,
@@ -106,6 +113,15 @@ export function App(): React.JSX.Element {
   )
   const [colorVision, setColorVision] = useState<ColorVisionMode>(
     () => readPreference('postblack:color-vision', 'normal') as ColorVisionMode
+  )
+  const [ideDensity, setIdeDensity] = useState<IdeDensity>(
+    () => readPreference('postblack:ide-density', 'comfortable') as IdeDensity
+  )
+  const [ideFontSize, setIdeFontSize] = useState<IdeFontSize>(
+    () => readPreference('postblack:ide-font-size', 'medium') as IdeFontSize
+  )
+  const [reduceMotion, setReduceMotion] = useState(
+    () => readPreference('postblack:reduce-motion', 'false') === 'true'
   )
   const [mainPaneHeight, setMainPaneHeight] = useState(0)
   const hydrated = useRef(false)
@@ -899,6 +915,35 @@ export function App(): React.JSX.Element {
     showNotice(`Workspace "${name}" updated.`)
   }
 
+  const importWorkspaceFile = async (file: File): Promise<void> => {
+    try {
+      const imported = workspaceSchema.parse(JSON.parse(await file.text()))
+      const importedWorkspace: Workspace = {
+        ...imported,
+        id: createId('workspace'),
+        name: uniqueName(imported.name, state?.workspaces.map((item) => item.name) ?? []),
+        updatedAt: nowIso()
+      }
+      immediateSave.current = true
+      setState((current) =>
+        current
+          ? {
+              ...current,
+              workspaces: [...current.workspaces, importedWorkspace],
+              activeWorkspaceId: importedWorkspace.id
+            }
+          : current
+      )
+      setSelectedRequestId(firstRequestInWorkspace(importedWorkspace)?.id ?? null)
+      setSelectedCollectionId(null)
+      setResponse(null)
+      setModal(null)
+      showNotice(`Workspace "${importedWorkspace.name}" importado.`)
+    } catch {
+      showNotice('Não foi possível importar: o arquivo não é um workspace válido.')
+    }
+  }
+
   const switchWorkspace = (workspaceId: string): void => {
     if (!state) return
     const next = state.workspaces.find((item) => item.id === workspaceId)
@@ -1030,7 +1075,9 @@ export function App(): React.JSX.Element {
     )
 
   return (
-    <div className={`app-shell theme-${ideTheme} vision-${colorVision}`}>
+    <div
+      className={`app-shell theme-${ideTheme} vision-${colorVision} density-${ideDensity} font-${ideFontSize}${reduceMotion ? ' reduce-motion' : ''}`}
+    >
       <header className="titlebar">
         <div className="brand">
           <div className="brand-mark">
@@ -1285,16 +1332,36 @@ export function App(): React.JSX.Element {
       )}
       {modal === 'ide-settings' && (
         <IdeSettingsModal
-          theme={ideTheme}
-          colorVision={colorVision}
-          onSave={(theme, vision) => {
-            setIdeTheme(theme)
-            setColorVision(vision)
-            persistPreference('postblack:ide-theme', theme)
-            persistPreference('postblack:color-vision', vision)
-            setModal(null)
-            showNotice('IDE settings saved.')
+          preferences={{
+            theme: ideTheme,
+            colorVision,
+            density: ideDensity,
+            fontSize: ideFontSize,
+            reduceMotion
           }}
+          workspaces={state.workspaces}
+          activeWorkspaceId={state.activeWorkspaceId}
+          onSave={(preferences) => {
+            setIdeTheme(preferences.theme)
+            setColorVision(preferences.colorVision)
+            setIdeDensity(preferences.density)
+            setIdeFontSize(preferences.fontSize)
+            setReduceMotion(preferences.reduceMotion)
+            persistPreference('postblack:ide-theme', preferences.theme)
+            persistPreference('postblack:color-vision', preferences.colorVision)
+            persistPreference('postblack:ide-density', preferences.density)
+            persistPreference('postblack:ide-font-size', preferences.fontSize)
+            persistPreference('postblack:reduce-motion', String(preferences.reduceMotion))
+            setModal(null)
+            showNotice('Configurações salvas.')
+          }}
+          onActivateWorkspace={(workspaceId) => {
+            switchWorkspace(workspaceId)
+            setModal(null)
+          }}
+          onExportWorkspace={(item) => downloadJson(`${safeFileName(item.name)}.postblack.json`, item)}
+          onExportAllData={() => downloadJson('postblack-backup.json', state)}
+          onImportWorkspace={(file) => void importWorkspaceFile(file)}
           onClose={() => setModal(null)}
         />
       )}
@@ -1796,4 +1863,26 @@ function persistPreference(key: string, value: string): void {
   } catch {
     // Preferences remain available for the current session.
   }
+}
+
+function downloadJson(fileName: string, value: unknown): void {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
+function safeFileName(value: string): string {
+  return (
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9-_]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'workspace'
+  )
 }

@@ -67,7 +67,7 @@ const requestFolderSchema = z.object({
   color: z.enum(FOLDER_COLORS).default('default')
 })
 
-const workspaceSchema = z.object({
+export const workspaceSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
