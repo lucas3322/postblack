@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.0 — 2026-09-20
+
+- feat: implementar busca de texto no corpo e persistência de expansão da barra lateral (6610e54)
+
 ## 0.14.0 — 2026-09-17
 
 - feat: enhance cURL import/export functionality with multipart/form-data and GraphQL support (13c383c)
