@@ -121,7 +121,12 @@ describe('HTTP executor', () => {
       const textEntry = createFormDataEntry('description', '{{description}}')
       const fileEntry = createFormDataEntry('document')
       fileEntry.type = 'file'
-      fileEntry.file = { path: filePath, name: 'sample.txt', size: 17, mimeType: 'text/plain' }
+      fileEntry.file = {
+        path: filePath,
+        name: 'sample.txt',
+        size: Number.MAX_SAFE_INTEGER,
+        mimeType: 'text/plain'
+      }
       request.body.formData = [textEntry, fileEntry]
 
       const result = await executeHttpRequest({ request, variables: { description: 'Contrato' } })
@@ -149,7 +154,7 @@ describe('HTTP executor', () => {
       request.body.binaryFile = {
         path: filePath,
         name: 'payload.bin',
-        size: 14,
+        size: Number.MAX_SAFE_INTEGER,
         mimeType: 'application/octet-stream'
       }
 

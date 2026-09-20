@@ -1,5 +1,5 @@
 import { performance } from 'node:perf_hooks'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import {
   createId,
   createKeyValue,
@@ -135,11 +135,15 @@ async function buildBody(
       const key = resolveVariables(entry.key, variables)
       if (entry.type === 'file') {
         if (!entry.file) continue
-        totalFileBytes += entry.file.size
+        const file = await readUploadFile(entry.file.path)
+        totalFileBytes += file.size
         if (totalFileBytes > MAX_UPLOAD_BYTES)
           throw new Error('Os arquivos excedem o limite total de 250 MB.')
-        const contents = await readFile(entry.file.path)
-        form.append(key, new Blob([contents], { type: entry.file.mimeType }), entry.file.name)
+        form.append(
+          key,
+          new Blob([new Uint8Array(file.contents)], { type: entry.file.mimeType }),
+          entry.file.name
+        )
       } else {
         form.append(key, resolveVariables(entry.value, variables))
       }
@@ -149,9 +153,9 @@ async function buildBody(
 
   if (mode === 'binary') {
     if (!body.binaryFile) throw new Error('Selecione um arquivo para enviar no body binário.')
-    if (body.binaryFile.size > MAX_UPLOAD_BYTES) throw new Error('O arquivo excede o limite de 250 MB.')
+    const file = await readUploadFile(body.binaryFile.path)
     if (!headers.has('content-type')) headers.set('Content-Type', body.binaryFile.mimeType)
-    return new Blob([await readFile(body.binaryFile.path)], { type: body.binaryFile.mimeType })
+    return new Blob([new Uint8Array(file.contents)], { type: body.binaryFile.mimeType })
   }
 
   if (mode === 'graphql') {
@@ -197,6 +201,13 @@ async function buildBody(
     headers.set('Content-Type', contentType)
   }
   return resolveVariables(content, variables)
+}
+
+async function readUploadFile(path: string): Promise<{ contents: Buffer; size: number }> {
+  const details = await stat(path)
+  if (!details.isFile()) throw new Error('O caminho selecionado não é um arquivo válido.')
+  if (details.size > MAX_UPLOAD_BYTES) throw new Error('O arquivo excede o limite de 250 MB.')
+  return { contents: await readFile(path), size: details.size }
 }
 
 function supportsBody(method: string): boolean {

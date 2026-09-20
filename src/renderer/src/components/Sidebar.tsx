@@ -31,6 +31,13 @@ import type {
 } from '../../../shared/domain'
 import type { FolderDropTarget } from '../lib/folder-move'
 import type { RequestLocation } from '../lib/request-move'
+import {
+  EMPTY_SIDEBAR_EXPANSION,
+  isSidebarItemOpen,
+  parseSidebarExpansion,
+  SIDEBAR_EXPANSION_STORAGE_KEY,
+  updateSidebarItem
+} from '../lib/sidebar-expansion'
 
 interface SidebarProps {
   workspace: Workspace
@@ -111,6 +118,14 @@ const FOLDER_COLOR_OPTIONS: Array<{ value: FolderColor; label: string; color: st
   { value: 'pink', label: 'Pink', color: '#e879b2' }
 ]
 
+function readSidebarExpansion(): typeof EMPTY_SIDEBAR_EXPANSION {
+  try {
+    return parseSidebarExpansion(window.localStorage.getItem(SIDEBAR_EXPANSION_STORAGE_KEY))
+  } catch {
+    return EMPTY_SIDEBAR_EXPANSION
+  }
+}
+
 export function Sidebar({
   workspace,
   selectedRequestId,
@@ -151,11 +166,20 @@ export function Sidebar({
   const [dropTarget, setDropTarget] = useState<RequestLocation | null>(null)
   const [draggedFolder, setDraggedFolder] = useState<DraggedFolder | null>(null)
   const [folderDropTarget, setFolderDropTarget] = useState<FolderDropIndicator | null>(null)
+  const [expansion, setExpansion] = useState(() => readSidebarExpansion())
   const firstMenuItem = useRef<HTMLButtonElement>(null)
   const collections = useMemo(
     () => filterCollections(workspace.collections, query),
     [workspace.collections, query]
   )
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_EXPANSION_STORAGE_KEY, JSON.stringify(expansion))
+    } catch {
+      // The sidebar still works when storage is unavailable (for example in private mode).
+    }
+  }, [expansion])
 
   useEffect(() => {
     if (!requestMenu && !collectionMenu && !folderColorMenu) return
@@ -249,6 +273,18 @@ export function Sidebar({
           <CollectionNode
             key={collection.id}
             collection={collection}
+            open={query.trim() ? true : isSidebarItemOpen(expansion.collections, workspace.id, collection.id)}
+            onOpenChange={(open) =>
+              setExpansion((current) =>
+                updateSidebarItem(current, 'collections', workspace.id, collection.id, open)
+              )
+            }
+            isFolderOpen={(folderId) =>
+              query.trim() ? true : isSidebarItemOpen(expansion.folders, workspace.id, folderId)
+            }
+            onFolderOpenChange={(folderId, open) =>
+              setExpansion((current) => updateSidebarItem(current, 'folders', workspace.id, folderId, open))
+            }
             selectedRequestId={selectedRequestId}
             selectedCollectionId={selectedCollectionId}
             openRequestMenuId={requestMenu?.request.id ?? null}
@@ -462,6 +498,10 @@ export function Sidebar({
 
 function CollectionNode({
   collection,
+  open,
+  onOpenChange,
+  isFolderOpen,
+  onFolderOpenChange,
   selectedRequestId,
   selectedCollectionId,
   openRequestMenuId,
@@ -492,6 +532,10 @@ function CollectionNode({
   onOpenCollectionMenu
 }: {
   collection: RequestCollection
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  isFolderOpen: (folderId: string) => boolean
+  onFolderOpenChange: (folderId: string, open: boolean) => void
   selectedRequestId: string | null
   selectedCollectionId: string | null
   openRequestMenuId: string | null
@@ -521,7 +565,6 @@ function CollectionNode({
   onOpenRequestMenu: (request: ApiRequest, x: number, y: number) => void
   onOpenCollectionMenu: (collection: RequestCollection, x: number, y: number) => void
 }): React.JSX.Element {
-  const [open, setOpen] = useState(true)
   const collectionTarget = { collectionId: collection.id }
   const canDropOnCollection = canMoveRequest(draggedRequest, collectionTarget)
   const collectionIsTarget = sameRequestLocation(dropTarget, collectionTarget)
@@ -568,7 +611,12 @@ function CollectionNode({
           }
         }}
       >
-        <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle collection">
+        <button
+          className="collection-chevron"
+          onClick={() => onOpenChange(!open)}
+          aria-label="Toggle collection"
+          aria-expanded={open}
+        >
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         <button
@@ -634,6 +682,8 @@ function CollectionNode({
               key={folder.id}
               collection={collection}
               folder={folder}
+              open={isFolderOpen(folder.id)}
+              onOpenChange={(open) => onFolderOpenChange(folder.id, open)}
               index={index}
               selectedRequestId={selectedRequestId}
               openRequestMenuId={openRequestMenuId}
@@ -667,6 +717,8 @@ function CollectionNode({
 function FolderNode({
   collection,
   folder,
+  open,
+  onOpenChange,
   index,
   selectedRequestId,
   openRequestMenuId,
@@ -692,6 +744,8 @@ function FolderNode({
 }: {
   collection: RequestCollection
   folder: RequestFolder
+  open: boolean
+  onOpenChange: (open: boolean) => void
   index: number
   selectedRequestId: string | null
   openRequestMenuId: string | null
@@ -715,7 +769,6 @@ function FolderNode({
   onMoveFolder: (folderId: string, target: FolderDropTarget) => void
   folderDraggingEnabled: boolean
 }): React.JSX.Element {
-  const [open, setOpen] = useState(true)
   const folderTarget = { collectionId: collection.id, folderId: folder.id }
   const canDropOnFolder = canMoveRequest(draggedRequest, folderTarget)
   const folderIsTarget = sameRequestLocation(dropTarget, folderTarget)
@@ -767,7 +820,12 @@ function FolderNode({
           }
         }}
       >
-        <button className="collection-chevron" onClick={() => setOpen(!open)} aria-label="Toggle folder">
+        <button
+          className="collection-chevron"
+          onClick={() => onOpenChange(!open)}
+          aria-label="Toggle folder"
+          aria-expanded={open}
+        >
           {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </button>
         <button

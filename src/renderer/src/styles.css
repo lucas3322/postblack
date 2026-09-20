@@ -2212,8 +2212,66 @@ select {
   flex: 1;
   min-height: 0;
 }
+.body-find {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  right: 12px;
+  max-width: calc(100% - 24px);
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px 4px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  background: var(--panel-2);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+}
+.body-find input {
+  min-width: 40px;
+  flex: 1;
+  width: 190px;
+  height: 24px;
+  padding: 0 5px;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font-size: calc(10px + var(--font-delta));
+}
+.body-find-count {
+  min-width: 42px;
+  color: var(--muted);
+  font-size: calc(9px + var(--font-delta));
+  text-align: center;
+  white-space: nowrap;
+}
+.body-find button {
+  flex: none;
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  font-size: calc(9px + var(--font-delta));
+}
+.body-find button:hover:not(:disabled),
+.body-find button.active {
+  color: var(--text);
+  background: var(--border);
+}
+.body-find button:disabled {
+  opacity: 0.35;
+}
 .json-body-editor .body-textarea,
-.json-body-highlight {
+.json-body-highlight,
+.body-search-highlight {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2239,6 +2297,19 @@ select {
 }
 .json-body-highlight::-webkit-scrollbar {
   display: none;
+}
+.body-search-highlight {
+  z-index: 3;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+  scrollbar-gutter: auto;
+}
+.body-search-highlight mark {
+  color: transparent;
+  background: color-mix(in srgb, var(--blue) 25%, transparent);
+  outline: 1px solid var(--blue);
+  border-radius: 2px;
 }
 .json-body-editor .json-body-input {
   z-index: 1;

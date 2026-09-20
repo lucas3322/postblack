@@ -40,14 +40,20 @@ function createWindow(): void {
     if (url.startsWith('https://')) void shell.openExternal(url)
     return { action: 'deny' }
   })
-  window.webContents.on('will-navigate', (event) => event.preventDefault())
-  if (process.env['ELECTRON_RENDERER_URL']) {
-    void window.loadURL(process.env['ELECTRON_RENDERER_URL']).catch((error) => handleLoadError(window, error))
-  } else {
-    void window
-      .loadFile(join(__dirname, '../renderer/index.html'))
-      .catch((error) => handleLoadError(window, error))
-  }
+  const rendererLoad = process.env['ELECTRON_RENDERER_URL']
+    ? window.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    : window.loadFile(join(__dirname, '../renderer/index.html'))
+
+  void rendererLoad
+    .then(() => protectRendererNavigation(window))
+    .catch((error) => handleLoadError(window, error))
+}
+
+function protectRendererNavigation(window: BrowserWindow): void {
+  window.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault()
+    if (url.startsWith('https://')) void shell.openExternal(url)
+  })
 }
 
 function focusMainWindow(): void {
