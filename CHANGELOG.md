@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.0 — 2026-10-09
+
+- feat: melhorando visualização e layout (917a598)
+
 ## 0.15.0 — 2026-09-20
 
 - feat: implementar busca de texto no corpo e persistência de expansão da barra lateral (6610e54)
