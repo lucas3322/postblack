@@ -1,14 +1,21 @@
 import {
   Box,
+  Braces,
   ChevronDown,
   Command,
+  FolderPlus,
   History,
   Import,
   Layers3,
+  Moon,
   Pencil,
   Plus,
   RefreshCw,
+  Search,
+  Send,
   Settings2,
+  Sun,
+  Terminal,
   Variable
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +39,8 @@ import {
 import { resolveVariables, scopedVariableDetails, scopedVariables } from '../../shared/variables'
 import { KeyValueEditor } from './components/KeyValueEditor'
 import { BrandLogo } from './components/BrandLogo'
+import { CommandPalette, type PaletteCommand } from './components/CommandPalette'
+import { ImportModal, type ImportTab } from './components/ImportModal'
 import { CollectionOverview } from './components/CollectionOverview'
 import { Modal } from './components/Modal'
 import { MoveCollectionModal } from './components/MoveCollectionModal'
@@ -54,6 +63,7 @@ import {
   type IdeTheme
 } from './components/IdeSettingsModal'
 import { workspaceSchema } from '../../shared/schemas'
+import type { ImportedOpenApi } from '../../shared/openapi'
 import {
   availablePaneHeight,
   clampRequestPaneHeight,
@@ -77,7 +87,7 @@ import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-
 
 type SaveState = 'saved' | 'saving' | 'error'
 type ModalName =
-  'environment' | 'curl' | 'history' | 'workspace' | 'workspace-settings' | 'ide-settings' | null
+  'environment' | 'curl' | 'import' | 'history' | 'workspace' | 'workspace-settings' | 'ide-settings' | null
 
 interface TextDialog {
   title: string
@@ -100,6 +110,8 @@ export function App(): React.JSX.Element {
   const [sending, setSending] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [modal, setModal] = useState<ModalName>(null)
+  const [importTab, setImportTab] = useState<ImportTab>('curl')
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const [textDialog, setTextDialog] = useState<TextDialog | null>(null)
   const [movingCollectionId, setMovingCollectionId] = useState<string | null>(null)
   const [curlInput, setCurlInput] = useState('')
@@ -1008,6 +1020,46 @@ export function App(): React.JSX.Element {
     }
   }
 
+  const openImport = (tab: ImportTab): void => {
+    setImportTab(tab)
+    setModal('import')
+  }
+
+  const importOpenApiCollection = (imported: ImportedOpenApi): void => {
+    if (!workspace) return
+    const collection: RequestCollection = {
+      ...imported.collection,
+      name: uniqueName(
+        imported.collection.name,
+        workspace.collections.map((item) => item.name)
+      )
+    }
+    const environment = {
+      id: createId('environment'),
+      name: uniqueName(
+        imported.title || collection.name,
+        workspace.environments.map((item) => item.name)
+      ),
+      variables: imported.variables
+    }
+    immediateSave.current = true
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: [...current.collections, collection],
+      environments: imported.variables.length ? [...current.environments, environment] : current.environments,
+      activeEnvironmentId: imported.variables.length ? environment.id : current.activeEnvironmentId
+    }))
+    setSelectedCollectionId(collection.id)
+    setSelectedRequestId(null)
+    setResponse(null)
+    setModal(null)
+    showNotice(
+      `"${collection.name}" imported: ${imported.operationCount} requests` +
+        (imported.variables.length ? `, environment "${environment.name}" activated.` : '.')
+    )
+  }
+
   const importCurlCommand = async (): Promise<void> => {
     if (!workspace || !curlInput.trim()) return
     try {
@@ -1046,6 +1098,13 @@ export function App(): React.JSX.Element {
     const handleRequestShortcut = (event: KeyboardEvent): void => {
       const key = event.key.toLowerCase()
       const commandPressed = event.metaKey || event.ctrlKey
+      if (commandPressed && (key === 'k' || key === 'p') && !textDialog && !closingDirtyTabId) {
+        event.preventDefault()
+        setModal(null)
+        setPaletteOpen((current) => !current)
+        return
+      }
+      if (paletteOpen) return
       if (commandPressed && key === 'n' && !modal && !textDialog && !closingDirtyTabId) {
         event.preventDefault()
         addScratchRequest()
@@ -1097,6 +1156,158 @@ export function App(): React.JSX.Element {
       </div>
     )
 
+  const openRequestFromPalette = (request: ApiRequest): void => {
+    setOpenTabs((current) => openRequestTab(current, workspace.id, request.id, true, dirtyRequestIds))
+    setSelectedRequestId(request.id)
+    setSelectedCollectionId(null)
+    if (request.id !== selectedRequestId) setResponse(null)
+  }
+
+  const paletteCommands: PaletteCommand[] = [
+    {
+      id: 'action-new-request',
+      group: 'Actions',
+      title: 'New request',
+      icon: <Plus size={15} />,
+      shortcut: '⌘N',
+      run: addScratchRequest
+    },
+    ...(selectedRequest && !selectedCollection
+      ? [
+          {
+            id: 'action-send',
+            group: 'Actions' as const,
+            title: `Send “${selectedRequest.name}”`,
+            icon: <Send size={15} />,
+            run: () => void sendRequest()
+          },
+          {
+            id: 'action-generate-curl',
+            group: 'Actions' as const,
+            title: 'Copy request as cURL',
+            keywords: 'generate export curl',
+            icon: <Terminal size={15} />,
+            run: () => void openCurl()
+          }
+        ]
+      : []),
+    {
+      id: 'action-import-curl',
+      group: 'Actions',
+      title: 'Import cURL',
+      icon: <Terminal size={15} />,
+      run: () => openImport('curl')
+    },
+    {
+      id: 'action-import-openapi',
+      group: 'Actions',
+      title: 'Import OpenAPI / Swagger',
+      keywords: 'openapi swagger spec json import',
+      icon: <Braces size={15} />,
+      run: () => openImport('openapi')
+    },
+    {
+      id: 'action-new-collection',
+      group: 'Actions',
+      title: 'New collection',
+      icon: <FolderPlus size={15} />,
+      run: addCollection
+    },
+    {
+      id: 'action-variables',
+      group: 'Actions',
+      title: 'Variables & environments',
+      keywords: 'env environment globals',
+      icon: <Variable size={15} />,
+      run: () => setModal('environment')
+    },
+    {
+      id: 'action-history',
+      group: 'Actions',
+      title: 'Response history',
+      icon: <History size={15} />,
+      run: () => setModal('history')
+    },
+    {
+      id: 'action-theme',
+      group: 'Actions',
+      title: ideTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
+      keywords: 'appearance theme dark light mode',
+      icon: ideTheme === 'dark' ? <Sun size={15} /> : <Moon size={15} />,
+      run: () => {
+        const theme: IdeTheme = ideTheme === 'dark' ? 'light' : 'dark'
+        setIdeTheme(theme)
+        persistPreference('postblack:ide-theme', theme)
+      }
+    },
+    {
+      id: 'action-settings',
+      group: 'Actions',
+      title: 'IDE settings',
+      keywords: 'preferences density font accessibility color vision',
+      icon: <Settings2 size={15} />,
+      run: () => setModal('ide-settings')
+    },
+    {
+      id: 'action-new-workspace',
+      group: 'Actions',
+      title: 'New workspace',
+      icon: <Layers3 size={15} />,
+      run: addWorkspace
+    },
+    ...workspace.environments
+      .filter((environment) => environment.id !== workspace.activeEnvironmentId)
+      .map((environment) => ({
+        id: `environment-${environment.id}`,
+        group: 'Actions' as const,
+        title: `Use environment “${environment.name}”`,
+        keywords: 'environment switch activate',
+        icon: <span className="env-dot" />,
+        run: () => {
+          updateWorkspace((current) => ({ ...current, activeEnvironmentId: environment.id }))
+          showNotice(`Environment “${environment.name}” active.`)
+        }
+      })),
+    ...workspace.collections
+      .flatMap((collection) => [
+        ...collection.requests.map((request) => ({ request, path: collection.name })),
+        ...collection.folders.flatMap((folder) =>
+          folder.requests.map((request) => ({ request, path: `${collection.name} › ${folder.name}` }))
+        )
+      ])
+      .map(({ request, path }) => ({
+        id: `request-${request.id}`,
+        group: 'Requests' as const,
+        title: request.name,
+        subtitle: `${path} · ${request.url || 'No URL'}`,
+        keywords: request.url,
+        method: request.method,
+        run: () => openRequestFromPalette(request)
+      })),
+    ...workspace.collections.map((collection) => ({
+      id: `collection-${collection.id}`,
+      group: 'Collections' as const,
+      title: collection.name,
+      subtitle: `${requestsInCollection(collection).length} requests · ${collection.folders.length} folders`,
+      icon: <Box size={15} />,
+      run: () => {
+        setSelectedCollectionId(collection.id)
+        setSelectedRequestId(null)
+        setResponse(null)
+      }
+    })),
+    ...state.workspaces
+      .filter((item) => item.id !== workspace.id)
+      .map((item) => ({
+        id: `workspace-${item.id}`,
+        group: 'Workspaces' as const,
+        title: `Switch to ${item.name}`,
+        subtitle: item.description,
+        icon: <Layers3 size={15} />,
+        run: () => switchWorkspace(item.id)
+      }))
+  ]
+
   return (
     <div
       className={`app-shell theme-${ideTheme} vision-${colorVision} density-${ideDensity} font-${ideFontSize}${reduceMotion ? ' reduce-motion' : ''}`}
@@ -1136,7 +1347,13 @@ export function App(): React.JSX.Element {
           <Plus size={15} /> Workspace
         </button>
         <div className="titlebar-spacer" />
-        <button className="button quiet" onClick={() => setModal('curl')}>
+        <button className="command-trigger" onClick={() => setPaletteOpen(true)} title="Command palette">
+          <Search size={14} />
+          <span>Search requests and actions</span>
+          <kbd>⌘K</kbd>
+        </button>
+        <div className="titlebar-spacer" />
+        <button className="button quiet" onClick={() => openImport('curl')}>
           <Import size={15} /> Import
         </button>
         <button className="button environment-button" onClick={() => setModal('environment')}>
@@ -1310,9 +1527,13 @@ export function App(): React.JSX.Element {
             </>
           ) : (
             <EmptyWorkspace
+              workspaceName={workspace.name}
               onAdd={() =>
-                workspace.collections[0] ? addRequest(workspace.collections[0].id) : addCollection()
+                workspace.collections[0] ? addRequest(workspace.collections[0].id) : addScratchRequest()
               }
+              onAddCollection={addCollection}
+              onImport={openImport}
+              onOpenPalette={() => setPaletteOpen(true)}
             />
           )}
         </main>
@@ -1332,8 +1553,16 @@ export function App(): React.JSX.Element {
         </span>
         <span className="statusbar-spacer" />
         <span>
-          <Command size={12} /> Enter to send
+          {workspace.collections.reduce(
+            (total, collection) => total + requestsInCollection(collection).length,
+            0
+          )}{' '}
+          requests · {workspace.collections.length} collections
         </span>
+        <button className="status-shortcut" onClick={() => setPaletteOpen(true)}>
+          <Command size={11} /> K Commands
+        </button>
+        <span>↵ in the URL bar sends</span>
       </footer>
       <UpdateNotice manualCheckToken={manualUpdateCheck} />
       {modal === 'workspace' && (
@@ -1485,7 +1714,24 @@ export function App(): React.JSX.Element {
           onClose={() => setModal(null)}
         />
       )}
-      {notice && <div className="toast">{notice}</div>}
+      {modal === 'import' && (
+        <ImportModal
+          initialTab={importTab}
+          curlInput={curlInput}
+          variables={variables}
+          onCurlInput={setCurlInput}
+          onImportCurl={() => void importCurlCommand()}
+          onImportOpenApi={importOpenApiCollection}
+          onImportWorkspace={() => void importWorkspaceFile()}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {paletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setPaletteOpen(false)} />}
+      {notice && (
+        <div className="toast" role="status" key={notice}>
+          {notice}
+        </div>
+      )}
     </div>
   )
 }
@@ -1748,16 +1994,69 @@ function HistoryModal({
   )
 }
 
-function EmptyWorkspace({ onAdd }: { onAdd: () => void }): React.JSX.Element {
+function EmptyWorkspace({
+  workspaceName,
+  onAdd,
+  onAddCollection,
+  onImport,
+  onOpenPalette
+}: {
+  workspaceName: string
+  onAdd: () => void
+  onAddCollection: () => void
+  onImport: (tab: ImportTab) => void
+  onOpenPalette: () => void
+}): React.JSX.Element {
+  const actions = [
+    {
+      icon: <Plus size={18} />,
+      title: 'New request',
+      description: 'Start from a blank HTTP request.',
+      shortcut: '⌘N',
+      run: onAdd
+    },
+    {
+      icon: <Terminal size={18} />,
+      title: 'Paste a cURL',
+      description: 'Method, headers, auth and body parsed for you.',
+      run: () => onImport('curl')
+    },
+    {
+      icon: <Braces size={18} />,
+      title: 'Import OpenAPI / Swagger',
+      description: 'Turn a swagger.json into a ready-to-run collection.',
+      run: () => onImport('openapi')
+    },
+    {
+      icon: <FolderPlus size={18} />,
+      title: 'New collection',
+      description: 'Group related routes into folders.',
+      run: onAddCollection
+    }
+  ]
+
   return (
     <div className="empty-workspace">
-      <div className="brand-mark large">
-        <BrandLogo />
+      <div className="empty-hero">
+        <div className="brand-mark large">
+          <BrandLogo />
+        </div>
+        <span className="empty-eyebrow">{workspaceName}</span>
+        <h2>What are we testing today?</h2>
+        <p>Pick a starting point, or press ⌘K to jump to any request or action.</p>
       </div>
-      <h2>Build your next request</h2>
-      <p>Create a request inside a collection and start exploring your API.</p>
-      <button className="button primary" onClick={onAdd}>
-        <Plus size={16} /> New request
+      <div className="empty-actions">
+        {actions.map((action) => (
+          <button key={action.title} className="empty-action" onClick={action.run}>
+            <span className="empty-action-icon">{action.icon}</span>
+            <strong>{action.title}</strong>
+            <span>{action.description}</span>
+            {action.shortcut && <kbd>{action.shortcut}</kbd>}
+          </button>
+        ))}
+      </div>
+      <button className="empty-palette-hint" onClick={onOpenPalette}>
+        <Search size={13} /> Search everything <kbd>⌘K</kbd>
       </button>
     </div>
   )

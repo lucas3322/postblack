@@ -85,6 +85,9 @@ export function ResponseViewer({
         <FileJson2 size={32} />
         <h3>Your response will appear here</h3>
         <p>Send the request to inspect status, headers, timing, size, and body.</p>
+        <span className="empty-response-hint">
+          <kbd>Enter</kbd> in the URL bar sends · <kbd>⌘K</kbd> finds anything
+        </span>
       </section>
     )
 
@@ -92,7 +95,11 @@ export function ResponseViewer({
     <section ref={responseRef} className="response">
       <header className="response-header">
         <div>
-          <span className={`status-pill ${response.status >= 400 || response.error ? 'bad' : ''}`}>
+          <span
+            className={`status-pill status-${response.error ? 'error' : `${Math.floor(response.status / 100)}xx`} ${
+              response.status >= 400 || response.error ? 'bad' : ''
+            }`}
+          >
             {response.error ? 'ERROR' : `${response.status} ${response.statusText}`}
           </span>
           <span>

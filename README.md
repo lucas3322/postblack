@@ -2,6 +2,23 @@
 
 Cliente HTTP desktop, local-first, feito com Electron, React e TypeScript.
 
+## Importação
+
+O botão **Import** (ou `⌘K` → "Import…") reúne três origens:
+
+- **cURL**: método, URL, query, headers, Basic/Bearer, JSON, multipart e GraphQL. Também funciona
+  colando o comando direto na barra de URL;
+- **OpenAPI 3.x / Swagger 2.0 (JSON)**: por arquivo (inclusive arrastando), URL ou colando o JSON.
+  Gera uma coleção com uma pasta por tag, parâmetros, bodies de exemplo gerados a partir do schema,
+  autenticação a partir de `securitySchemes` e um ambiente novo com `{{base_url}}`, os placeholders
+  de auth e os path params. YAML ainda não é suportado; o parser fica em `src/shared/openapi.ts`;
+- **Workspace do Postblack**: arquivos `.postblack.json` exportados pelo app.
+
+## Paleta de comandos
+
+`⌘K` (ou `Ctrl+K`) abre a busca global: requests de todas as coleções (por nome ou URL), coleções,
+workspaces, troca de ambiente, tema e as ações principais.
+
 ## Desenvolvimento
 
 ```bash

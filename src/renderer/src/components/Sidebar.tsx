@@ -317,7 +317,13 @@ export function Sidebar({
             onOpenCollectionMenu={openCollectionMenu}
           />
         ))}
-        {collections.length === 0 && <div className="empty-inline">No matching requests.</div>}
+        {collections.length === 0 && (
+          <div className="empty-inline">
+            {workspace.collections.length
+              ? 'No matching requests.'
+              : 'No collections yet. Press + to create one.'}
+          </div>
+        )}
       </div>
 
       {requestMenu &&
