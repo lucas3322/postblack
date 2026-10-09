@@ -2,16 +2,17 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta
       name="description"
-      content="Postblack é um cliente HTTP desktop, local-first, feito para testar APIs sem ruído."
+      content="Postblack é um cliente HTTP desktop, local-first e open source. Cole um cURL, importe OpenAPI, use variáveis com escopo e leia respostas com tabela, gráfico e busca. Sem conta, sem nuvem."
     />
-    <meta name="theme-color" content="#050911" />
+    <meta name="theme-color" content="#05080f" />
+    <meta name="color-scheme" content="dark" />
     <meta property="og:title" content="Postblack — sua API, sem ruído" />
     <meta
       property="og:description"
-      content="Workspaces, cURL inteligente, variáveis e respostas legíveis em um cliente HTTP desktop."
+      content="Cliente HTTP desktop local-first: cURL inteligente, OpenAPI, variáveis com escopo, runner e respostas legíveis. Open source, sem login."
     />
     <title>Postblack — sua API, sem ruído</title>
     <link rel="icon" type="image/png" href="./assets/favicon.png" />
@@ -21,176 +22,514 @@
   <body>
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
-    <header class="site-header">
-      <a class="brand" href="#topo" aria-label="Postblack, início">
-        <img src="./assets/postblack-logo.png" alt="" width="34" height="34" />
-        <span>postblack</span>
-        <small>ALPHA</small>
-      </a>
+    <header class="site-header" data-header>
+      <div class="header-inner">
+        <a class="brand" href="#topo" aria-label="Postblack, início">
+          <img src="./assets/postblack-logo.png" alt="" width="30" height="30" />
+          <span>postblack</span>
+          <small>ALPHA</small>
+        </a>
 
-      <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav">
-        Menu
-      </button>
+        <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav">
+          <span class="menu-icon" aria-hidden="true"><i></i><i></i></span>
+          <span>Menu</span>
+        </button>
 
-      <nav id="site-nav" aria-label="Navegação principal">
-        <a href="#produto">Produto</a>
-        <a href="#recursos">Recursos</a>
-        <a href="#novidades">Novidades</a>
-        <a href="#download">Download</a>
-        <a class="nav-cta" data-github-link href="https://github.com/lucas3322/postblack">GitHub</a>
-      </nav>
+        <nav id="site-nav" aria-label="Navegação principal">
+          <a href="#produto">Produto</a>
+          <a href="#fluxo">Fluxo</a>
+          <a href="#recursos">Recursos</a>
+          <a href="#seguranca">Segurança</a>
+          <a href="#novidades">Novidades</a>
+          <a href="#faq">FAQ</a>
+          <a class="nav-cta" href="#download">Baixar</a>
+        </nav>
+      </div>
     </header>
 
     <main id="conteudo">
-      <section class="hero" id="topo">
+      <!-- HERO -->
+      <section class="hero" id="topo" aria-labelledby="hero-title">
+        <div class="hero-backdrop" aria-hidden="true"></div>
         <div class="hero-copy">
-          <div class="eyebrow"><span></span> Cliente HTTP desktop e local-first</div>
-          <h1>Sua API.<br /><em>Sem ruído.</em></h1>
-          <p>
-            Organize rotas, cole um cURL e envie. O Postblack transforma chamadas complexas em
-            requests claras, reutilizáveis e fáceis de entender.
+          <a class="hero-pill" href="#recursos">
+            <span class="pill-tag">Novo</span>
+            Importação OpenAPI e paleta de comandos <kbd>⌘K</kbd>
+            <span aria-hidden="true">→</span>
+          </a>
+          <h1 id="hero-title">Sua API.<br /><em>Sem ruído.</em></h1>
+          <p class="hero-lead">
+            Um cliente HTTP desktop, local-first e open source. Cole um cURL, importe um Swagger,
+            organize em workspaces e leia cada resposta com clareza — sem conta, sem nuvem, sem
+            esperar.
           </p>
           <div class="hero-actions">
             <a class="button button-primary" href="#download">
               <span>Baixar Postblack</span>
-              <span aria-hidden="true">↓</span>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M8 2v9m0 0 3.5-3.5M8 11 4.5 7.5M3 14h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </a>
             <a class="button button-secondary" data-github-link href="https://github.com/lucas3322/postblack">
-              Ver código no GitHub
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+              <span>Código no GitHub</span>
             </a>
           </div>
           <div class="release-meta" aria-live="polite">
-            <span class="status-dot"></span>
-            <span id="hero-version">Versão 0.1.0</span>
-            <span>•</span>
-            <span>Windows, macOS e Linux</span>
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="hero-version">Versão 0.15.0</span>
+            <span aria-hidden="true">·</span>
+            <span>macOS, Windows e Linux</span>
+            <span aria-hidden="true">·</span>
+            <span>Licença MIT</span>
           </div>
         </div>
 
-        <div class="product-stage" id="produto" aria-label="Prévia do Postblack">
-          <div class="stage-glow"></div>
-          <div class="app-window">
-            <div class="window-bar">
-              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
-              <div class="window-brand">
-                <img src="./assets/postblack-logo.png" alt="" />
-                postblack
+        <!-- App window mock -->
+        <div class="product-stage" id="produto" role="img" aria-label="Prévia do Postblack: barra lateral com coleções e pastas coloridas, abas de requests, barra de URL com a variável base_url e resposta JSON 201 Created.">
+          <div class="stage-glow" aria-hidden="true"></div>
+          <div class="app-window" aria-hidden="true">
+            <div class="win-titlebar">
+              <div class="traffic-lights"><i></i><i></i><i></i></div>
+              <div class="win-title">
+                <img src="./assets/postblack-logo.png" alt="" width="14" height="14" />
+                <span>Loja API</span>
+                <span class="win-sep">/</span>
+                <span class="win-muted">Pedidos</span>
               </div>
-              <div class="window-environment"><span></span> Development</div>
+              <div class="win-env"><span class="env-dot"></span>Staging<span class="caret">⌄</span></div>
             </div>
-            <div class="app-layout">
+
+            <div class="win-body">
+              <div class="activity-bar">
+                <span class="act active"><svg viewBox="0 0 20 20"><path d="M3 5.5h5l1.5 2H17v8H3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+                <span class="act"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.5V10l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                <span class="act"><svg viewBox="0 0 20 20"><path d="M4 6h12M4 10h12M4 14h7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="15" cy="14" r="1.6" fill="currentColor"/></svg></span>
+                <span class="act"><svg viewBox="0 0 20 20"><path d="M6 4.5v11l9-5.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+                <span class="act act-bottom"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v2M10 15v2M3 10h2M15 10h2M5 5l1.4 1.4M13.6 13.6 15 15M5 15l1.4-1.4M13.6 6.4 15 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+              </div>
+
               <aside class="mock-sidebar">
-                <div class="mock-workspace">My workspace <span>⌄</span></div>
-                <p>COLLECTIONS</p>
-                <div class="mock-collection">⌄ Backend</div>
-                <div class="mock-route active"><b>GET</b> List purchases</div>
-                <div class="mock-route"><b class="post">POST</b> Create purchase</div>
-                <div class="mock-route"><b class="patch">PATCH</b> Update status</div>
+                <div class="side-workspace"><span class="ws-avatar">L</span>Loja API<span class="caret">⌄</span></div>
+                <div class="side-search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Buscar<kbd>⌘K</kbd></div>
+                <p class="side-label">Coleções</p>
+                <div class="tree">
+                  <div class="tree-row tree-collection"><span class="chev">⌄</span>E-commerce v2</div>
+                  <div class="tree-row tree-folder lvl1"><span class="chev">⌄</span><i class="folder" style="--fc: var(--f-blue)"></i>Pedidos</div>
+                  <div class="tree-row lvl2"><b class="m m-get">GET</b>Listar pedidos</div>
+                  <div class="tree-row lvl2 active"><b class="m m-post">POST</b>Criar pedido</div>
+                  <div class="tree-row lvl2"><b class="m m-patch">PATCH</b>Atualizar status</div>
+                  <div class="tree-row lvl2"><b class="m m-del">DEL</b>Cancelar pedido</div>
+                  <div class="tree-row tree-folder lvl1"><span class="chev">›</span><i class="folder" style="--fc: var(--f-orange)"></i>Pagamentos</div>
+                  <div class="tree-row tree-folder lvl1"><span class="chev">›</span><i class="folder" style="--fc: var(--f-purple)"></i>Auth</div>
+                  <div class="tree-row tree-folder lvl1"><span class="chev">›</span><i class="folder" style="--fc: var(--f-green)"></i>Webhooks</div>
+                  <div class="tree-row tree-collection"><span class="chev">›</span>Backoffice</div>
+                </div>
+                <div class="side-footer"><span class="env-dot"></span>3 variáveis · Staging</div>
               </aside>
-              <div class="mock-content">
-                <div class="request-bar">
-                  <strong>GET</strong>
-                  <code>{{base_url}}/api/v1/compras/list?page=1</code>
-                  <button type="button" tabindex="-1">Send</button>
+
+              <div class="mock-main">
+                <div class="tabbar">
+                  <span class="tab"><b class="m m-get">GET</b>Listar pedidos</span>
+                  <span class="tab active"><b class="m m-post">POST</b>Criar pedido<i class="dirty"></i></span>
+                  <span class="tab preview"><b class="m m-put">PUT</b>Endereço</span>
+                  <span class="tab-add">+</span>
                 </div>
-                <div class="mock-tabs"><b>Params</b><span>Headers <i>4</i></span><span>Body</span><span>Auth</span></div>
-                <div class="params-grid">
-                  <div><small>PARAMETER</small><code>page</code><code>1</code></div>
-                  <div><small>PARAMETER</small><code>paginate</code><code>true</code></div>
+
+                <div class="urlbar">
+                  <span class="url-method m-post-text">POST<span class="caret">⌄</span></span>
+                  <span class="url-text"><span class="var-chip">{{base_url}}</span>/v2/pedidos?<span class="url-q">notify</span>=<span class="url-v">true</span></span>
+                  <span class="send-btn">Enviar</span>
+                  <span class="peek">
+                    <span class="peek-name">base_url</span>
+                    <span class="peek-value">https://staging.loja.dev</span>
+                    <span class="peek-scope"><i></i>Ambiente · Staging</span>
+                  </span>
                 </div>
-                <div class="response-bar">
-                  <strong>200 OK</strong><span>184 ms</span><span>1.24 KB</span>
+
+                <div class="req-tabs">
+                  <span>Params <i>1</i></span><span>Headers <i>4</i></span><span class="on">Body</span><span>Auth</span>
+                  <span class="req-tabs-right">JSON<span class="caret">⌄</span></span>
                 </div>
-                <pre class="json-preview" aria-label="Exemplo de resposta JSON"><code>{
-  <span class="json-key">"success"</span>: <span class="json-bool">true</span>,
-  <span class="json-key">"page"</span>: <span class="json-number">1</span>,
-  <span class="json-key">"message"</span>: <span class="json-string">"Compras carregadas"</span>,
-  <span class="json-key">"data"</span>: [
-    { <span class="json-key">"id"</span>: <span class="json-number">1042</span>, <span class="json-key">"status"</span>: <span class="json-string">"approved"</span> }
-  ]
-}</code></pre>
+
+                <div class="split">
+                  <pre class="code-pane"><span class="ln">1</span>{
+<span class="ln">2</span>  <span class="j-k">"cliente_id"</span>: <span class="j-s">"{{customer_id}}"</span>,
+<span class="ln">3</span>  <span class="j-k">"itens"</span>: [{ <span class="j-k">"sku"</span>: <span class="j-s">"PB-001"</span>, <span class="j-k">"qtd"</span>: <span class="j-n">2</span> }],
+<span class="ln">4</span>  <span class="j-k">"frete"</span>: <span class="j-s">"expresso"</span>,
+<span class="ln">5</span>  <span class="j-k">"presente"</span>: <span class="j-b">false</span>
+<span class="ln">6</span>}</pre>
+
+                  <div class="res-pane">
+                    <div class="res-head">
+                      <span class="status-pill">201 Created</span>
+                      <span class="res-meta">184 ms</span>
+                      <span class="res-meta">1,24 KB</span>
+                      <span class="res-tabs"><span class="on">Body</span><span>Headers</span><span>Cookies</span></span>
+                    </div>
+                    <pre class="code-pane res-code">{
+  <span class="j-k">"id"</span>: <span class="j-n">10482</span>,
+  <span class="j-k">"status"</span>: <span class="j-s">"aguardando_pagamento"</span>,
+  <span class="j-k">"total"</span>: <span class="j-n">259.80</span>,
+  <span class="j-k">"rastreio"</span>: <span class="j-null">null</span>,
+  <span class="j-k">"criado_em"</span>: <span class="j-s">"2026-10-09T14:21:07Z"</span>
+}</pre>
+                  </div>
+                </div>
+
+                <div class="statusbar">
+                  <span><i class="env-dot"></i>Staging</span>
+                  <span>⌘S salvar</span>
+                  <span>↵ enviar</span>
+                  <span class="sb-right">UTF-8 · JSON</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="trust-strip" aria-label="Princípios do produto">
-        <span>Electron + TypeScript</span>
-        <span>Dados locais</span>
-        <span>Open source</span>
-        <span>Multiplataforma</span>
+      <!-- SHORTCUTS / STATS STRIP -->
+      <section class="strip" aria-label="Atalhos e números">
+        <ul class="shortcuts reveal">
+          <li><kbd>⌘K</kbd><span>Ir para qualquer request</span></li>
+          <li><kbd>⌘N</kbd><span>Nova request rascunho</span></li>
+          <li><kbd>⌘S</kbd><span>Salvar alterações</span></li>
+          <li><kbd>↵</kbd><span>Enviar da barra de URL</span></li>
+        </ul>
+        <dl class="stats reveal">
+          <div><dt>Métodos HTTP</dt><dd>7</dd></div>
+          <div><dt>Modos de body</dt><dd>6</dd></div>
+          <div><dt>Escopos de variável</dt><dd>3</dd></div>
+          <div><dt>Contas para criar</dt><dd>0</dd></div>
+        </dl>
       </section>
 
-      <section class="section features" id="recursos">
-        <div class="section-heading">
-          <p>Feito para o fluxo real</p>
-          <h2>Menos configuração.<br />Mais contexto.</h2>
-          <span>O essencial de um cliente de API, organizado para você chegar à resposta mais rápido.</span>
+      <!-- WORKFLOW -->
+      <section class="section" id="fluxo" aria-labelledby="fluxo-title">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Fluxo de trabalho</p>
+          <h2 id="fluxo-title">Da especificação à resposta, em quatro passos.</h2>
+          <p class="section-lead">Cada etapa foi desenhada para tirar fricção do caminho entre “tenho uma API” e “entendi o que ela respondeu”.</p>
         </div>
 
-        <div class="feature-grid">
-          <article class="feature feature-wide">
-            <div class="feature-index">01</div>
-            <div>
-              <h3>Cole o cURL. O request aparece.</h3>
-              <p>
-                Método, URL, parâmetros e headers são reconhecidos direto na barra. Sem modal, sem
-                retrabalho.
-              </p>
+        <ol class="steps">
+          <li class="step reveal">
+            <span class="step-num">01</span>
+            <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>Importe</h3>
+            <p>Cole um cURL na barra de URL, importe um OpenAPI 3.x ou Swagger 2.0 por arquivo, texto ou URL, ou traga um workspace em JSON.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step-num">02</span>
+            <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+            <h3>Organize</h3>
+            <p>Workspaces, coleções e pastas aninhadas com 9 cores. Arraste para mover, duplique, ordene e copie como JSON.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step-num">03</span>
+            <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12 20 4l-5 16-3-7z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+            <h3>Envie</h3>
+            <p>Variáveis <code>{{assim}}</code> resolvidas por escopo, autenticação Bearer, Basic ou API Key e seis modos de body. <kbd>↵</kbd> na barra de URL e pronto.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step-num">04</span>
+            <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <h3>Inspecione</h3>
+            <p>Status, tempo, tamanho, headers e cookies. JSON colorido, busca no corpo, tabela, gráfico e preview de HTML.</p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- FEATURES BENTO -->
+      <section class="section" id="recursos" aria-labelledby="recursos-title">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Recursos</p>
+          <h2 id="recursos-title">Profundo onde importa.<br /><span class="dim">Silencioso no resto.</span></h2>
+          <p class="section-lead">Nada de painéis vazios ou planos pagos. Tudo abaixo já funciona no app, hoje, no seu computador.</p>
+        </div>
+
+        <div class="bento">
+          <!-- cURL -->
+          <article class="card card-wide card-curl reveal" aria-labelledby="f-curl">
+            <div class="card-copy">
+              <p class="card-kicker">cURL inteligente</p>
+              <h3 id="f-curl">Cole um cURL. Ganhe uma request pronta.</h3>
+              <p>Método, URL, query params, headers, autenticação e body — inclusive multipart e GraphQL — são reconhecidos direto na barra de URL. E o caminho inverso também: gere o cURL de qualquer request.</p>
             </div>
-            <div class="curl-demo">
-              <code><span>curl</span> --location 'https://api.exemplo.dev/users?page=1' \</code>
-              <code>&nbsp;&nbsp;--header 'Authorization: Bearer {{token}}'</code>
-              <div class="transform-line"><i></i><span>Request importado</span></div>
+            <div class="curl-demo" data-curl-demo>
+              <div class="demo-pane curl-input">
+                <span class="pane-label">Barra de URL</span>
+                <pre class="curl-text" data-curl-text>curl -X POST 'https://api.loja.dev/v2/pedidos?notify=true' \
+  -H 'Authorization: Bearer eyJhbGciOi…' \
+  -H 'Content-Type: application/json' \
+  --data '{"sku":"PB-001","qtd":2}'</pre>
+              </div>
+              <div class="curl-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14m0 0-5-5m5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="demo-pane curl-parsed" data-curl-parsed>
+                <span class="pane-label">Request reconhecida</span>
+                <div class="parsed-row"><b class="m m-post">POST</b><code>api.loja.dev/v2/pedidos</code></div>
+                <dl class="parsed-list">
+                  <div><dt>Params</dt><dd><code>notify</code> = true</dd></div>
+                  <div><dt>Auth</dt><dd>Bearer Token</dd></div>
+                  <div><dt>Headers</dt><dd>Content-Type</dd></div>
+                  <div><dt>Body</dt><dd>JSON · 2 campos</dd></div>
+                </dl>
+              </div>
+              <button class="replay" type="button" data-curl-replay hidden>Repetir</button>
             </div>
           </article>
 
-          <article class="feature">
-            <div class="feature-index">02</div>
-            <h3>Variáveis no escopo certo</h3>
-            <p>Globais para toda a aplicação, locais por workspace e específicas de cada ambiente.</p>
-            <div class="scope-list">
-              <span><i class="scope-global"></i> Global <code>{{api_key}}</code></span>
-              <span><i class="scope-workspace"></i> Workspace <code>{{customer_id}}</code></span>
-              <span><i class="scope-environment"></i> Ambiente <code>{{base_url}}</code></span>
+          <!-- OpenAPI -->
+          <article class="card card-openapi reveal" aria-labelledby="f-openapi">
+            <div class="card-copy">
+              <p class="card-kicker">Importação OpenAPI <span class="badge-new">Novo</span></p>
+              <h3 id="f-openapi">Swagger vira coleção.</h3>
+              <p>OpenAPI 3.x ou Swagger 2.0 em JSON — por arquivo, colando ou por URL. Pastas por tag, params, bodies de exemplo, auth e uma variável <code>{{base_url}}</code>.</p>
+            </div>
+            <div class="openapi-demo" aria-hidden="true">
+              <div class="spec-file"><span class="file-ico">{ }</span>openapi.json<span class="spec-ver">3.1</span></div>
+              <div class="tree mini-tree">
+                <div class="tree-row tree-collection"><span class="chev">⌄</span>Petstore API</div>
+                <div class="tree-row tree-folder lvl1"><span class="chev">⌄</span><i class="folder" style="--fc: var(--f-cyan)"></i>pets</div>
+                <div class="tree-row lvl2"><b class="m m-get">GET</b>/pets</div>
+                <div class="tree-row lvl2"><b class="m m-post">POST</b>/pets</div>
+                <div class="tree-row lvl2"><b class="m m-del">DEL</b>/pets/{id}</div>
+                <div class="tree-row tree-folder lvl1"><span class="chev">›</span><i class="folder" style="--fc: var(--f-yellow)"></i>store</div>
+                <div class="tree-row tree-var"><span class="var-chip">{{base_url}}</span>criada no workspace</div>
+              </div>
             </div>
           </article>
 
-          <article class="feature">
-            <div class="feature-index">03</div>
-            <h3>JSON que você lê de verdade</h3>
-            <p>Chaves e valores ganham cores por tipo: strings, números, booleanos e nulos.</p>
-            <div class="type-row">
-              <code class="json-key">key</code><code class="json-string">"string"</code>
-              <code class="json-number">42</code><code class="json-bool">true</code>
-              <code class="json-null">null</code>
+          <!-- Variables -->
+          <article class="card card-vars reveal" aria-labelledby="f-vars">
+            <div class="card-copy">
+              <p class="card-kicker">Variáveis com escopo</p>
+              <h3 id="f-vars">O escopo mais próximo vence.</h3>
+              <p>Defina uma vez, sobrescreva onde precisar. Autocomplete na URL, body e auth; passe o mouse para ver valor e origem. Segredos ficam mascarados.</p>
+            </div>
+            <ol class="scope-stack" aria-label="Ordem de resolução de variáveis">
+              <li class="scope scope-env"><span class="scope-tag">Ambiente</span><code>{{base_url}}</code><span class="scope-val">staging.loja.dev</span><span class="scope-win">vence</span></li>
+              <li class="scope scope-ws"><span class="scope-tag">Workspace</span><code>{{base_url}}</code><span class="scope-val struck">api.loja.dev</span></li>
+              <li class="scope scope-global"><span class="scope-tag">Global</span><code>{{token}}</code><span class="scope-val secret">••••••••••</span></li>
+            </ol>
+          </article>
+
+          <!-- Response visualizations -->
+          <article class="card card-wide card-viz reveal" aria-labelledby="f-viz">
+            <div class="card-copy">
+              <p class="card-kicker">Leitura de respostas</p>
+              <h3 id="f-viz">Um array JSON vira tabela. Ou gráfico.</h3>
+              <p>JSON colorido por tipo, formatos pretty e raw, preview de HTML, busca no corpo, aba de cookies e histórico. Gostou de uma resposta? Salve como exemplo da request.</p>
+              <div class="segmented" role="tablist" aria-label="Visualização da resposta" data-viz-tabs>
+                <button type="button" role="tab" aria-selected="false" aria-controls="viz-json" id="viz-tab-json" data-viz="json">JSON</button>
+                <button type="button" role="tab" aria-selected="true" aria-controls="viz-table" id="viz-tab-table" data-viz="table">Tabela</button>
+                <button type="button" role="tab" aria-selected="false" aria-controls="viz-chart" id="viz-tab-chart" data-viz="chart">Gráfico</button>
+              </div>
+            </div>
+            <div class="viz-stage">
+              <div class="viz-head"><span class="status-pill">200 OK</span><span class="res-meta">92 ms</span><span class="res-meta">4 itens</span><span class="find"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>vendas</span></div>
+              <div class="viz-panel" id="viz-json" role="tabpanel" aria-labelledby="viz-tab-json" hidden>
+                <pre class="code-pane">[
+  { <span class="j-k">"mes"</span>: <span class="j-s">"jun"</span>, <span class="j-k">"<mark>vendas</mark>"</span>: <span class="j-n">182</span>, <span class="j-k">"ativo"</span>: <span class="j-b">true</span> },
+  { <span class="j-k">"mes"</span>: <span class="j-s">"jul"</span>, <span class="j-k">"<mark>vendas</mark>"</span>: <span class="j-n">240</span>, <span class="j-k">"ativo"</span>: <span class="j-b">true</span> },
+  { <span class="j-k">"mes"</span>: <span class="j-s">"ago"</span>, <span class="j-k">"<mark>vendas</mark>"</span>: <span class="j-n">211</span>, <span class="j-k">"ativo"</span>: <span class="j-b">false</span> },
+  { <span class="j-k">"mes"</span>: <span class="j-s">"set"</span>, <span class="j-k">"<mark>vendas</mark>"</span>: <span class="j-n">318</span>, <span class="j-k">"ativo"</span>: <span class="j-b">true</span> }
+]</pre>
+              </div>
+              <div class="viz-panel" id="viz-table" role="tabpanel" aria-labelledby="viz-tab-table">
+                <table class="viz-table">
+                  <thead><tr><th scope="col">mes</th><th scope="col">vendas</th><th scope="col">ativo</th></tr></thead>
+                  <tbody>
+                    <tr><td class="j-s">jun</td><td class="j-n">182</td><td class="j-b">true</td></tr>
+                    <tr><td class="j-s">jul</td><td class="j-n">240</td><td class="j-b">true</td></tr>
+                    <tr><td class="j-s">ago</td><td class="j-n">211</td><td class="j-b">false</td></tr>
+                    <tr><td class="j-s">set</td><td class="j-n">318</td><td class="j-b">true</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="viz-panel" id="viz-chart" role="tabpanel" aria-labelledby="viz-tab-chart" hidden>
+                <div class="viz-chart" role="img" aria-label="Gráfico de barras de vendas: jun 182, jul 240, ago 211, set 318">
+                  <div class="bar" style="--v: 0.57"><span>182</span><small>jun</small></div>
+                  <div class="bar" style="--v: 0.75"><span>240</span><small>jul</small></div>
+                  <div class="bar" style="--v: 0.66"><span>211</span><small>ago</small></div>
+                  <div class="bar" style="--v: 1"><span>318</span><small>set</small></div>
+                </div>
+              </div>
             </div>
           </article>
 
-          <article class="feature feature-wide local-first">
-            <div class="feature-index">04</div>
-            <div>
-              <h3>Seu trabalho fica com você</h3>
-              <p>
-                Workspaces, coleções, rotas e variáveis são persistidos localmente. Abra o app e
-                continue exatamente de onde parou.
-              </p>
+          <!-- Command palette -->
+          <article class="card card-palette reveal" aria-labelledby="f-palette">
+            <div class="card-copy">
+              <p class="card-kicker">Paleta de comandos <span class="badge-new">Novo</span></p>
+              <h3 id="f-palette"><kbd>⌘K</kbd> e você está lá.</h3>
+              <p>Pule para qualquer request de qualquer coleção ou dispare uma ação sem tirar as mãos do teclado.</p>
             </div>
-            <div class="local-diagram" aria-label="Fluxo local do Postblack">
-              <span>Request</span><b>→</b><span class="diagram-core">Postblack</span><b>→</b><span>Sua API</span>
+            <div class="palette" aria-hidden="true">
+              <div class="palette-input"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span>ped</span><i class="caret-blink"></i></div>
+              <div class="palette-group">Requests</div>
+              <div class="palette-item on"><b class="m m-get">GET</b><span>Listar <u>ped</u>idos</span><small>Pedidos</small></div>
+              <div class="palette-item"><b class="m m-post">POST</b><span>Criar <u>ped</u>ido</span><small>Pedidos</small></div>
+              <div class="palette-group">Ações</div>
+              <div class="palette-item"><span class="pi-ico">↧</span><span>Importar OpenAPI…</span><small>Ação</small></div>
+            </div>
+          </article>
+
+          <!-- Body modes -->
+          <article class="card card-body reveal" aria-labelledby="f-body">
+            <div class="card-copy">
+              <p class="card-kicker">Requests completas</p>
+              <h3 id="f-body">Sete métodos. Seis modos de body.</h3>
+              <p>Editor JSON com destaque e formatação, raw em texto, JavaScript, HTML ou XML, uploads de arquivo e GraphQL com variáveis.</p>
+            </div>
+            <div class="chips" aria-label="Métodos suportados">
+              <span class="chip m-get-c">GET</span><span class="chip m-post-c">POST</span><span class="chip m-put-c">PUT</span><span class="chip m-patch-c">PATCH</span><span class="chip m-del-c">DELETE</span><span class="chip m-head-c">HEAD</span><span class="chip m-head-c">OPTIONS</span>
+            </div>
+            <ul class="body-modes" aria-label="Modos de body">
+              <li><b>JSON</b><span>destaque + formatar</span></li>
+              <li><b>Raw</b><span>text · js · html · xml</span></li>
+              <li><b>form-data</b><span>texto e arquivos</span></li>
+              <li><b>x-www-form-urlencoded</b><span>chave = valor</span></li>
+              <li><b>Binário</b><span>arquivo único</span></li>
+              <li><b>GraphQL</b><span>query + variables</span></li>
+            </ul>
+          </article>
+
+          <!-- Organization -->
+          <article class="card card-org reveal" aria-labelledby="f-org">
+            <div class="card-copy">
+              <p class="card-kicker">Organização</p>
+              <h3 id="f-org">Pastas com cor. Arraste e solte.</h3>
+              <p>Pastas aninhadas em 9 cores, requests e pastas movidas por drag-and-drop, coleções que mudam de workspace. Duplicar, ordenar e copiar como JSON a um clique.</p>
+            </div>
+            <div class="swatches" aria-label="Nove cores de pasta">
+              <i style="--fc: var(--f-default)" title="Padrão"></i><i style="--fc: var(--f-blue)" title="Azul"></i><i style="--fc: var(--f-cyan)" title="Ciano"></i><i style="--fc: var(--f-green)" title="Verde"></i><i style="--fc: var(--f-yellow)" title="Amarelo"></i><i style="--fc: var(--f-orange)" title="Laranja"></i><i style="--fc: var(--f-red)" title="Vermelho"></i><i style="--fc: var(--f-purple)" title="Roxo"></i><i style="--fc: var(--f-pink)" title="Rosa"></i>
+            </div>
+            <div class="drag-demo" aria-hidden="true">
+              <div class="tree-row tree-folder"><i class="folder" style="--fc: var(--f-red)"></i>Legado</div>
+              <div class="tree-row drag-ghost"><b class="m m-put">PUT</b>Atualizar endereço<span class="grab">⠿</span></div>
+              <div class="tree-row tree-folder drop-target"><i class="folder" style="--fc: var(--f-green)"></i>Clientes</div>
+            </div>
+          </article>
+
+          <!-- Tabs & workspace -->
+          <article class="card card-tabs reveal" aria-labelledby="f-tabs">
+            <div class="card-copy">
+              <p class="card-kicker">Fluxo de abas</p>
+              <h3 id="f-tabs">Abas que entendem você.</h3>
+              <p>Abas de prévia em itálico que viram fixas ao editar, indicador de alterações não salvas, barra lateral e divisor request/resposta redimensionáveis.</p>
+            </div>
+            <div class="tabs-demo" aria-hidden="true">
+              <div class="tabbar">
+                <span class="tab"><b class="m m-get">GET</b>Saldo</span>
+                <span class="tab active"><b class="m m-patch">PATCH</b>Status<i class="dirty"></i></span>
+                <span class="tab preview"><b class="m m-del">DEL</b>Sessão</span>
+              </div>
+              <ul class="tab-legend">
+                <li><i class="dirty"></i>alterações não salvas · <kbd>⌘S</kbd></li>
+                <li><em>itálico</em> = prévia, substituída ao abrir outra</li>
+                <li><kbd>↵</kbd> na barra de URL envia</li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- Runner -->
+          <article class="card card-runner reveal" aria-labelledby="f-runner">
+            <div class="card-copy">
+              <p class="card-kicker">Runner de coleção</p>
+              <h3 id="f-runner">Rode a coleção inteira.</h3>
+              <p>Execute todas as requests em sequência e veja status e tempo de cada uma — ideal para um smoke test antes do deploy.</p>
+            </div>
+            <ol class="runner" aria-label="Exemplo de execução">
+              <li><span class="ok">✓</span><b class="m m-post">POST</b>Login<span class="rt">201 · 140 ms</span></li>
+              <li><span class="ok">✓</span><b class="m m-get">GET</b>Listar pedidos<span class="rt">200 · 92 ms</span></li>
+              <li><span class="ok">✓</span><b class="m m-post">POST</b>Criar pedido<span class="rt">201 · 184 ms</span></li>
+              <li><span class="err">!</span><b class="m m-del">DEL</b>Cancelar pedido<span class="rt rt-err">409 · 77 ms</span></li>
+            </ol>
+          </article>
+
+          <!-- Accessibility -->
+          <article class="card card-wide card-a11y reveal" aria-labelledby="f-a11y">
+            <div class="card-copy">
+              <p class="card-kicker">Ajustes da IDE</p>
+              <h3 id="f-a11y">Feito para os seus olhos.</h3>
+              <p>Tema escuro ou claro, modos para protanopia, deuteranopia, tritanopia e monocromático, densidade, tamanho de fonte e redução de movimento.</p>
+              <div class="segmented segmented-wrap" role="group" aria-label="Simular modo de visão de cores" data-cv-tabs>
+                <button type="button" aria-pressed="true" data-cv="normal">Padrão</button>
+                <button type="button" aria-pressed="false" data-cv="protan">Protanopia</button>
+                <button type="button" aria-pressed="false" data-cv="deutan">Deuteranopia</button>
+                <button type="button" aria-pressed="false" data-cv="tritan">Tritanopia</button>
+                <button type="button" aria-pressed="false" data-cv="mono">Mono</button>
+              </div>
+            </div>
+            <div class="cv-preview" data-cv-preview data-mode="normal" aria-hidden="true">
+              <div class="cv-row"><b class="cv cv-get">GET</b><b class="cv cv-post">POST</b><b class="cv cv-put">PUT</b><b class="cv cv-patch">PATCH</b><b class="cv cv-del">DELETE</b></div>
+              <div class="cv-status"><span class="cv-ok">200 OK</span><span class="cv-warn">301 Moved</span><span class="cv-bad">500 Error</span></div>
+              <div class="cv-settings">
+                <div><span>Tema</span><b>Escuro</b></div>
+                <div><span>Densidade</span><b>Compacta</b></div>
+                <div><span>Fonte</span><b>13 px</b></div>
+                <div><span>Reduzir movimento</span><i class="toggle on"></i></div>
+              </div>
             </div>
           </article>
         </div>
       </section>
 
-      <section class="section releases" id="novidades">
-        <div class="section-heading row-heading">
-          <div>
-            <p>Do código ao download</p>
-            <h2>O que mudou.</h2>
+      <!-- LOCAL-FIRST & SECURE -->
+      <section class="section security" id="seguranca" aria-labelledby="seg-title">
+        <div class="security-grid">
+          <div class="security-copy reveal">
+            <p class="eyebrow">Local-first &amp; seguro</p>
+            <h2 id="seg-title">Seus dados não saem da sua máquina.</h2>
+            <p class="section-lead">Workspaces, coleções, variáveis e histórico são gravados em JSON no seu disco. As requests vão direto do seu computador para a sua API — sem proxy, sem sincronização, sem login.</p>
+            <div class="flow" aria-label="Fluxo de dados: Postblack no seu computador conversa diretamente com a sua API">
+              <div class="flow-node"><span>Seu disco</span><small>JSON local</small></div>
+              <span class="flow-line" aria-hidden="true"></span>
+              <div class="flow-node flow-core"><img src="./assets/postblack-logo.png" alt="" width="22" height="22" /><span>Postblack</span></div>
+              <span class="flow-line" aria-hidden="true"></span>
+              <div class="flow-node"><span>Sua API</span><small>direto, sem proxy</small></div>
+            </div>
           </div>
-          <a data-releases-link href="https://github.com/lucas3322/postblack/releases">Todos os releases →</a>
+          <ul class="security-list">
+            <li class="reveal"><h3>Context isolation + sandbox</h3><p>O renderer roda isolado, sem acesso a Node.js. Só uma ponte mínima e tipada chega ao processo principal.</p></li>
+            <li class="reveal"><h3>Content Security Policy</h3><p>Interface com CSP restritiva: nada de scripts de terceiros carregados em tempo de execução.</p></li>
+            <li class="reveal"><h3>Segredos mascarados</h3><p>Variáveis marcadas como secretas aparecem como <code>••••</code> na interface e nos previews.</p></li>
+            <li class="reveal"><h3>Backup em um arquivo</h3><p>Exporte um workspace ou um backup completo em JSON. Importe em outra máquina quando quiser.</p></li>
+            <li class="reveal"><h3>Atualização transparente</h3><p>O app só consulta os GitHub Releases públicos para avisar quando existe uma versão nova.</p></li>
+            <li class="reveal"><h3>Código aberto, MIT</h3><p>Leia, audite e compile você mesmo. Cada release é gerado a partir do repositório público.</p></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- WHY -->
+      <section class="section why" id="por-que" aria-labelledby="why-title">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Por que Postblack</p>
+          <h2 id="why-title">Um cliente de API que não pede nada em troca.</h2>
+        </div>
+        <div class="compare reveal" role="table" aria-label="Comparação entre o Postblack e clientes de API baseados em nuvem">
+          <div class="compare-row compare-head" role="row">
+            <span role="columnheader">Você precisa de</span>
+            <span role="columnheader" class="col-pb">Postblack</span>
+            <span role="columnheader">Clientes típicos em nuvem</span>
+          </div>
+          <div class="compare-row" role="row"><span role="rowheader">Usar sem criar conta</span><span role="cell" class="col-pb"><i class="yes">✓</i>Abra e use</span><span role="cell" class="muted-cell">Login obrigatório</span></div>
+          <div class="compare-row" role="row"><span role="rowheader">Dados apenas no seu disco</span><span role="cell" class="col-pb"><i class="yes">✓</i>JSON local</span><span role="cell" class="muted-cell">Sincronizados na nuvem</span></div>
+          <div class="compare-row" role="row"><span role="rowheader">Trabalhar offline</span><span role="cell" class="col-pb"><i class="yes">✓</i>Sempre</span><span role="cell" class="muted-cell">Recursos limitados</span></div>
+          <div class="compare-row" role="row"><span role="rowheader">Código aberto</span><span role="cell" class="col-pb"><i class="yes">✓</i>MIT</span><span role="cell" class="muted-cell">Frequentemente fechado</span></div>
+          <div class="compare-row" role="row"><span role="rowheader">Abrir em segundos</span><span role="cell" class="col-pb"><i class="yes">✓</i>Sem onboarding</span><span role="cell" class="muted-cell">Telas de boas-vindas</span></div>
+          <div class="compare-row" role="row"><span role="rowheader">Custo</span><span role="cell" class="col-pb"><i class="yes">✓</i>Gratuito</span><span role="cell" class="muted-cell">Planos por usuário</span></div>
+        </div>
+      </section>
+
+      <!-- RELEASES -->
+      <section class="section releases" id="novidades" aria-labelledby="novidades-title">
+        <div class="section-heading row-heading reveal">
+          <div>
+            <p class="eyebrow">Do código ao download</p>
+            <h2 id="novidades-title">O que mudou.</h2>
+          </div>
+          <a class="text-link" data-releases-link href="https://github.com/lucas3322/postblack/releases">Todos os releases <span aria-hidden="true">→</span></a>
         </div>
 
         <div id="release-feed" class="release-feed" aria-live="polite" aria-busy="true">
@@ -201,68 +540,141 @@
         <p class="feed-status" id="feed-status">Carregando novidades do GitHub…</p>
       </section>
 
-      <section class="section download-section" id="download">
-        <div class="download-intro">
-          <p>Escolha sua plataforma</p>
-          <h2>Baixe. Abra.<br />Envie.</h2>
-          <span id="recommended-copy">Detectando o melhor instalador para este dispositivo…</span>
+      <!-- DOWNLOAD -->
+      <section class="section download-section" id="download" aria-labelledby="download-title">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Escolha sua plataforma</p>
+          <h2 id="download-title">Baixe. Abra. Envie.</h2>
+          <p class="section-lead" id="recommended-copy">Detectando o melhor instalador para este dispositivo…</p>
         </div>
 
         <div class="download-grid">
-          <article class="download-card" data-platform="mac">
-            <div class="platform-mark" aria-hidden="true">⌘</div>
-            <div>
-              <h3>macOS</h3>
-              <p>Kit com instalador e guia para builds não assinados</p>
+          <article class="download-card reveal" data-platform="mac">
+            <div class="dl-top">
+              <div class="platform-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.9-.9-3.1-.8-1.6 0-3.1.9-3.9 2.4-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.7 2.5 3 2.4 1.2 0 1.6-.8 3.1-.8 1.4 0 1.8.8 3.1.8 1.3 0 2.1-1.2 2.9-2.4.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.6-1-2.7-4.1ZM14.1 5.8c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.7-1.3Z"/></svg></div>
+              <span class="recommended-badge" hidden>Recomendado</span>
             </div>
-            <a data-asset="mac-arm64" href="https://github.com/lucas3322/postblack/releases">Kit Apple Silicon (.zip) <span>↓</span></a>
-            <a data-asset="mac-x64" href="https://github.com/lucas3322/postblack/releases">Kit Intel (.zip) <span>↓</span></a>
+            <h3>macOS</h3>
+            <p>Kit .zip com o app e um guia para abrir builds não assinados.</p>
+            <div class="dl-links">
+              <a class="dl-link" data-asset="mac-arm64" href="https://github.com/lucas3322/postblack/releases"><span>Apple Silicon<small>arm64 · .zip</small></span><span aria-hidden="true">↓</span></a>
+              <a class="dl-link" data-asset="mac-x64" href="https://github.com/lucas3322/postblack/releases"><span>Intel<small>x64 · .zip</small></span><span aria-hidden="true">↓</span></a>
+            </div>
           </article>
 
-          <article class="download-card" data-platform="win">
-            <div class="platform-mark windows-mark" aria-hidden="true">⊞</div>
-            <div>
-              <h3>Windows</h3>
-              <p>Windows 10 ou superior</p>
+          <article class="download-card reveal" data-platform="win">
+            <div class="dl-top">
+              <div class="platform-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.5 10.4 4.5v7H3zM11.4 4.3 21 3v8.5h-9.6zM3 12.5h7.4v7L3 18.5zM11.4 12.5H21V21l-9.6-1.3z"/></svg></div>
+              <span class="recommended-badge" hidden>Recomendado</span>
             </div>
-            <a data-asset="win-setup" href="https://github.com/lucas3322/postblack/releases">Instalador x64 <span>↓</span></a>
-            <a data-asset="win-portable" href="https://github.com/lucas3322/postblack/releases">Versão portátil <span>↓</span></a>
+            <h3>Windows</h3>
+            <p>Windows 10 ou superior, x64. Instalador ou versão portátil.</p>
+            <div class="dl-links">
+              <a class="dl-link" data-asset="win-setup" href="https://github.com/lucas3322/postblack/releases"><span>Instalador<small>x64 · setup .exe</small></span><span aria-hidden="true">↓</span></a>
+              <a class="dl-link" data-asset="win-portable" href="https://github.com/lucas3322/postblack/releases"><span>Portátil<small>x64 · sem instalação</small></span><span aria-hidden="true">↓</span></a>
+            </div>
           </article>
 
-          <article class="download-card" data-platform="linux">
-            <div class="platform-mark linux-mark" aria-hidden="true">◒</div>
-            <div>
-              <h3>Linux</h3>
-              <p>Distribuições x64</p>
+          <article class="download-card reveal" data-platform="linux">
+            <div class="dl-top">
+              <div class="platform-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6.5 12 3l8 3.5v11L12 21l-8-3.5z M4 6.5 12 10l8-3.5 M12 10v11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+              <span class="recommended-badge" hidden>Recomendado</span>
             </div>
-            <a data-asset="linux-appimage" href="https://github.com/lucas3322/postblack/releases">AppImage <span>↓</span></a>
-            <a data-asset="linux-deb" href="https://github.com/lucas3322/postblack/releases">Pacote .deb <span>↓</span></a>
+            <h3>Linux</h3>
+            <p>Distribuições x64. AppImage universal ou pacote Debian/Ubuntu.</p>
+            <div class="dl-links">
+              <a class="dl-link" data-asset="linux-appimage" href="https://github.com/lucas3322/postblack/releases"><span>AppImage<small>x64 · universal</small></span><span aria-hidden="true">↓</span></a>
+              <a class="dl-link" data-asset="linux-deb" href="https://github.com/lucas3322/postblack/releases"><span>Pacote .deb<small>x64 · Debian, Ubuntu</small></span><span aria-hidden="true">↓</span></a>
+            </div>
           </article>
         </div>
 
-        <p class="unsigned-note">
-          Os builds alpha ainda não são assinados digitalmente. O código e cada release podem ser
-          auditados no GitHub antes da instalação.
+        <p class="unsigned-note reveal">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 7v4M8 5v.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span>Os builds alpha ainda não são assinados digitalmente. O código e cada release podem ser auditados no GitHub antes da instalação — veja como abrir no <a href="#faq-mac">FAQ</a>.</span>
         </p>
       </section>
 
-      <section class="final-cta">
-        <img src="./assets/postblack-logo.png" alt="" />
-        <div>
-          <p>Pronto para a próxima rota?</p>
-          <h2>Deixe a API falar.</h2>
+      <!-- FAQ -->
+      <section class="section faq" id="faq" aria-labelledby="faq-title">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Perguntas frequentes</p>
+          <h2 id="faq-title">Antes de baixar.</h2>
+          <p class="section-lead">As dúvidas mais comuns sobre instalação, privacidade e migração. Não achou a sua? Abra uma issue no <a class="text-link" data-github-link href="https://github.com/lucas3322/postblack">GitHub</a>.</p>
         </div>
-        <a class="button button-primary" href="#download">Baixar Postblack <span aria-hidden="true">↓</span></a>
+        <div class="faq-list reveal">
+          <details id="faq-mac">
+            <summary>Por que o macOS bloqueia a abertura do app?</summary>
+            <div class="faq-body">
+              <p>Os builds alpha ainda não são assinados nem notarizados pela Apple, então o Gatekeeper exibe um alerta. O kit .zip traz um guia passo a passo. Em resumo: mova o Postblack para Aplicativos e rode no Terminal:</p>
+              <pre class="cmd"><code>xattr -dr com.apple.quarantine "/Applications/Postblack.app"</code></pre>
+            </div>
+          </details>
+          <details>
+            <summary>E no Windows, aparece o SmartScreen?</summary>
+            <div class="faq-body"><p>Pode aparecer, pelo mesmo motivo (build não assinado). Clique em <strong>Mais informações</strong> e depois em <strong>Executar assim mesmo</strong>. Se preferir não instalar nada, use a versão portátil.</p></div>
+          </details>
+          <details>
+            <summary>Meus dados vão para a nuvem?</summary>
+            <div class="faq-body"><p>Não. Workspaces, coleções, variáveis e histórico ficam em arquivos JSON no seu computador. Não existe conta nem servidor do Postblack. A única chamada própria do app é a verificação de atualizações nos GitHub Releases públicos.</p></div>
+          </details>
+          <details>
+            <summary>Importa Swagger / OpenAPI?</summary>
+            <div class="faq-body"><p>Sim. OpenAPI 3.x e Swagger 2.0 em JSON, por arquivo, colando o conteúdo ou informando uma URL. O Postblack cria uma coleção com pastas por tag, parâmetros, bodies de exemplo, autenticação e a variável <code>{{base_url}}</code>.</p></div>
+          </details>
+          <details>
+            <summary>Como trago minhas requests de outra ferramenta?</summary>
+            <div class="faq-body"><p>A maioria das ferramentas exporta cURL: cole direto na barra de URL e a request é montada, incluindo headers, auth e body (multipart e GraphQL também). Para APIs documentadas, importe a especificação OpenAPI. Entre máquinas Postblack, use a exportação de workspace ou o backup completo.</p></div>
+          </details>
+          <details>
+            <summary>Variáveis secretas ficam protegidas?</summary>
+            <div class="faq-body"><p>Valores marcados como secretos são mascarados na interface. Eles continuam armazenados localmente, junto do restante dos seus dados — trate seu backup como um arquivo sensível.</p></div>
+          </details>
+          <details>
+            <summary>É gratuito? Posso contribuir?</summary>
+            <div class="faq-body"><p>Sim e sim. O Postblack é open source sob licença MIT. Issues, ideias e pull requests são bem-vindos no <a data-github-link href="https://github.com/lucas3322/postblack">GitHub</a>.</p></div>
+          </details>
+        </div>
+      </section>
+
+      <!-- FINAL CTA -->
+      <section class="final-cta reveal" aria-labelledby="cta-title">
+        <img src="./assets/postblack-logo.png" alt="" width="64" height="64" />
+        <p class="eyebrow">Pronto para a próxima rota?</p>
+        <h2 id="cta-title">Deixe a API falar.</h2>
+        <p class="section-lead">Gratuito, open source e no seu computador em menos de um minuto.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#download"><span>Baixar Postblack</span><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M8 2v9m0 0 3.5-3.5M8 11 4.5 7.5M3 14h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="button button-secondary" data-releases-link href="https://github.com/lucas3322/postblack/releases"><span>Ver releases</span></a>
+        </div>
       </section>
     </main>
 
-    <footer>
-      <a class="brand" href="#topo">
-        <img src="./assets/postblack-logo.png" alt="" width="30" height="30" />
-        <span>postblack</span>
-      </a>
-      <p>Cliente HTTP open source para quem constrói APIs.</p>
-      <div><a data-github-link href="https://github.com/lucas3322/postblack">GitHub</a><span>© <span id="year"></span> Postblack</span></div>
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a class="brand" href="#topo">
+            <img src="./assets/postblack-logo.png" alt="" width="26" height="26" />
+            <span>postblack</span>
+          </a>
+          <p>Cliente HTTP open source, local-first, para quem constrói APIs.</p>
+        </div>
+        <nav class="footer-nav" aria-label="Rodapé">
+          <div>
+            <h3>Produto</h3>
+            <a href="#recursos">Recursos</a>
+            <a href="#seguranca">Segurança</a>
+            <a href="#download">Download</a>
+          </div>
+          <div>
+            <h3>Projeto</h3>
+            <a data-github-link href="https://github.com/lucas3322/postblack">GitHub</a>
+            <a data-releases-link href="https://github.com/lucas3322/postblack/releases">Releases</a>
+            <a href="#faq">FAQ</a>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-legal"><span>© <span id="year"></span> Postblack · Licença MIT</span><span>Feito para quem constrói APIs.</span></div>
     </footer>
   </body>
 </html>

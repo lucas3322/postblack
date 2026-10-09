@@ -60,7 +60,7 @@ export function registerIpcHandlers(store: JsonStateStore): void {
   })
   ipcMain.handle(IPC_CHANNELS.importJson, async () => {
     const result = await dialog.showOpenDialog({
-      title: 'Importar workspace do Postblack',
+      title: 'Importar arquivo JSON',
       properties: ['openFile'],
       filters: [{ name: 'Arquivo JSON', extensions: ['json'] }]
     })
