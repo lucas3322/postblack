@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.1 — 2026-10-13
+
+- fix: melhorando cores (5a06536)
+
 ## 0.17.0 — 2026-10-13
 
 - feat: mantendo abas abertas mesmo após fechar (d74be47)
