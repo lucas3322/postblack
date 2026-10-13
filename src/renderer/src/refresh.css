@@ -48,18 +48,165 @@
   --surface-4: #e7ecf3;
   --glass: rgba(246, 248, 251, 0.78);
   --glass-strong: rgba(255, 255, 255, 0.9);
-  --hairline: rgba(20, 35, 60, 0.09);
-  --hairline-strong: rgba(20, 35, 60, 0.16);
+  --hairline: rgba(20, 35, 60, 0.11);
+  --hairline-strong: rgba(20, 35, 60, 0.2);
   --edge-light: rgba(255, 255, 255, 0.8);
-  --text-1: #141c2b;
-  --text-2: #4b5a70;
-  --text-3: #7a879a;
+  --text-1: #111827;
+  --text-2: #3f4b5e;
+  --text-3: #5d697b;
   --row-hover: rgba(20, 35, 60, 0.05);
   --row-selected: color-mix(in srgb, var(--blue) 12%, transparent);
   --scrim: rgba(30, 40, 55, 0.28);
   --shadow-sm: 0 1px 2px rgba(20, 35, 60, 0.08);
   --shadow-md: 0 8px 24px rgba(20, 35, 60, 0.1), 0 1px 2px rgba(20, 35, 60, 0.08);
   --shadow-lg: 0 30px 80px rgba(20, 35, 60, 0.2), 0 10px 24px rgba(20, 35, 60, 0.1);
+}
+
+/* Portaled popovers live in a body-level host that mirrors the shell classes (lib/portal-host). */
+.app-shell.portal-host {
+  display: contents;
+}
+.app-shell.portal-host.vision-monochrome > * {
+  filter: grayscale(1);
+}
+
+/* ---------- Light theme: surfaces still hard-coded for dark in styles.css ---------- */
+
+.app-shell.theme-light .folder-color-menu-title,
+.app-shell.theme-light .variable-suggestions-empty,
+.app-shell.theme-light .history-row time,
+.app-shell.theme-light .optional-label,
+.app-shell.theme-light .workspace-settings-hint,
+.app-shell.theme-light .workspace-local-card p,
+.app-shell.theme-light .update-notice-close,
+.app-shell.theme-light .update-progress-label,
+.app-shell.theme-light .update-notice p span,
+.app-shell.theme-light .response-cookies > p,
+.app-shell.theme-light .response-visual-empty,
+.app-shell.theme-light .response-chart-controls,
+.app-shell.theme-light .body-modes,
+.app-shell.theme-light .empty-modal,
+.app-shell.theme-light .app-loading,
+.app-shell.theme-light .empty-workspace,
+.app-shell.theme-light .collection-chevron,
+.app-shell.theme-light .request-more,
+.app-shell.theme-light .request-menu-item kbd,
+.app-shell.theme-light .url-editor .url-input::placeholder,
+.app-shell.theme-light .variable-value-input::placeholder,
+.app-shell.theme-light .json-body-input::placeholder {
+  color: var(--text-3);
+}
+.app-shell.theme-light .folder-color-swatch {
+  border-color: var(--surface-2);
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+}
+.app-shell.theme-light .folder-color-swatch:hover,
+.app-shell.theme-light .folder-color-swatch:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+.app-shell.theme-light .folder-color-swatch.selected::after {
+  background: var(--surface-2);
+}
+.app-shell.theme-light .folder-color-button:hover,
+.app-shell.theme-light .folder-color-button[aria-expanded='true'],
+.app-shell.theme-light .request-more:hover,
+.app-shell.theme-light .history-row:hover,
+.app-shell.theme-light .update-notice-close:hover {
+  color: var(--text-1);
+  background: var(--row-hover);
+}
+.app-shell.theme-light .collection-row.request-drop-target,
+.app-shell.theme-light .folder-row.request-drop-target,
+.app-shell.theme-light .collection-row.folder-drop-target {
+  color: var(--text-1);
+  background: var(--row-selected);
+}
+.app-shell.theme-light .request-menu-item.danger,
+.app-shell.theme-light .request-menu-item.danger svg,
+.app-shell.theme-light .json-format-error,
+.app-shell.theme-light .update-notice .update-error {
+  color: var(--red);
+}
+.app-shell.theme-light .collection-quick-actions button.danger:hover {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 7%, transparent);
+}
+.app-shell.theme-light .collection-symbol,
+.app-shell.theme-light .update-icon,
+.app-shell.theme-light .workspace-local-card > span {
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.app-shell.theme-light .url-variable-known,
+.app-shell.theme-light .variable-peek-title strong,
+.app-shell.theme-light .variable-suggestions button {
+  color: var(--cyan);
+}
+.app-shell.theme-light .url-variable-missing,
+.app-shell.theme-light .variable-peek p,
+.app-shell.theme-light .bearer-help.warning {
+  color: var(--orange);
+}
+.app-shell.theme-light .variable-peek-value {
+  border-color: var(--hairline-strong);
+  background: var(--surface-3);
+}
+.app-shell.theme-light .variable-peek-value code,
+.app-shell.theme-light .update-notice strong,
+.app-shell.theme-light .workspace-local-card strong,
+.app-shell.theme-light .update-progress-label b {
+  color: var(--text-1);
+}
+.app-shell.theme-light .variable-peek-value button,
+.app-shell.theme-light .variable-suggestions .variable-suggestions-manage,
+.app-shell.theme-light .add-row,
+.app-shell.theme-light .json-body-toolbar button,
+.app-shell.theme-light .url-variable-picker svg,
+.app-shell.theme-light .update-notice-state > svg,
+.app-shell.theme-light .workspace-local-card {
+  color: var(--accent);
+}
+.app-shell.theme-light .variable-peek-value button:hover,
+.app-shell.theme-light .add-row:hover,
+.app-shell.theme-light .json-body-toolbar button:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.app-shell.theme-light .variable-suggestions button:hover,
+.app-shell.theme-light .variable-suggestions button.active {
+  color: var(--text-1);
+  background: var(--row-selected);
+}
+.app-shell.theme-light .response-error {
+  border-color: color-mix(in srgb, var(--red) 30%, transparent);
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 6%, var(--surface-2));
+}
+.app-shell.theme-light .update-notice .update-macos-guide {
+  border-color: var(--hairline-strong);
+  color: var(--text-2);
+  background: var(--surface-3);
+}
+.app-shell.theme-light .update-progress-track {
+  background: var(--surface-4);
+}
+.app-shell.theme-light .workspace-create-form .field-label textarea {
+  background: var(--surface-2);
+}
+.app-shell.theme-light .scope-badge {
+  color: var(--text-2);
+}
+.app-shell.theme-light .scope-badge.global {
+  border-color: color-mix(in srgb, var(--purple) 35%, transparent);
+  color: var(--purple);
+}
+.app-shell.theme-light .scope-badge.workspace {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+.app-shell.theme-light .scope-badge.environment {
+  color: var(--green);
 }
 
 /* ---------- Primitives ---------- */
@@ -143,6 +290,58 @@
 }
 .app-shell .button.primary:hover:not(:disabled) {
   filter: brightness(1.08);
+}
+.app-shell .button.danger {
+  border-color: transparent;
+  color: #fff;
+  background: var(--red);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.app-shell .button.danger:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.app-shell .button.danger-outline {
+  border-color: color-mix(in srgb, var(--red) 40%, transparent);
+  color: var(--red);
+  background: transparent;
+}
+.app-shell .button.danger-outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--red) 9%, transparent);
+}
+
+/* Destructive actions sit apart from the form, so they are never hit by accident. */
+.app-shell .workspace-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--red) 22%, var(--hairline));
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--red) 4%, transparent);
+}
+.app-shell .workspace-danger-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+.app-shell .workspace-danger-copy strong {
+  color: var(--text-1);
+  font-size: calc(13px + var(--font-delta));
+}
+.app-shell .workspace-danger-copy span {
+  color: var(--text-2);
+  font-size: calc(12px + var(--font-delta));
+  line-height: 1.45;
+}
+.app-shell .workspace-danger-actions {
+  display: flex;
+  gap: 8px;
 }
 .app-shell .button.secondary,
 .app-shell .button.quiet,

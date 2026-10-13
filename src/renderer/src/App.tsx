@@ -18,7 +18,7 @@ import {
   Terminal,
   Variable
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   createId,
   createInitialState,
@@ -72,6 +72,7 @@ import {
   requestPaneBounds
 } from './lib/request-pane-size'
 import { hasTextSelection } from './lib/copy-selection'
+import { syncPortalHost } from './lib/portal-host'
 import { moveFolderInCollections, type FolderDropTarget } from './lib/folder-move'
 import { moveRequestInCollections, type RequestLocation } from './lib/request-move'
 import { responseForRequest } from './lib/response-selection'
@@ -156,6 +157,9 @@ export function App(): React.JSX.Element {
     setIdeFontSize(preferences.fontSize)
     setReduceMotion(preferences.reduceMotion)
   }, [])
+
+  const shellClassName = `app-shell theme-${ideTheme} vision-${colorVision} density-${ideDensity} font-${ideFontSize}${reduceMotion ? ' reduce-motion' : ''}`
+  useLayoutEffect(() => syncPortalHost(shellClassName), [shellClassName])
 
   useEffect(() => {
     const element = mainPaneRef.current
@@ -969,6 +973,36 @@ export function App(): React.JSX.Element {
     showNotice(`Workspace "${name}" updated.`)
   }
 
+  const deleteWorkspace = (workspaceId: string): void => {
+    if (!state) return
+    const target = state.workspaces.find((item) => item.id === workspaceId)
+    const remaining = state.workspaces.filter((item) => item.id !== workspaceId)
+    if (!target || remaining.length === 0) return
+    const removedRequestIds = new Set([
+      ...target.collections.flatMap(requestsInCollection).map((request) => request.id),
+      ...openTabs.filter((tab) => tab.workspaceId === workspaceId).map((tab) => tab.requestId)
+    ])
+    const withoutRemoved = (current: Record<string, ApiRequest>): Record<string, ApiRequest> =>
+      Object.fromEntries(Object.entries(current).filter(([id]) => !removedRequestIds.has(id)))
+    const nextActive =
+      state.activeWorkspaceId === workspaceId
+        ? remaining[0]!
+        : (remaining.find((item) => item.id === state.activeWorkspaceId) ?? remaining[0]!)
+
+    immediateSave.current = true
+    setState({ ...state, workspaces: remaining, activeWorkspaceId: nextActive.id })
+    setOpenTabs((current) => current.filter((tab) => tab.workspaceId !== workspaceId))
+    setRequestDrafts(withoutRemoved)
+    setScratchRequests(withoutRemoved)
+    if (state.activeWorkspaceId === workspaceId) {
+      setSelectedRequestId(firstRequestInWorkspace(nextActive)?.id ?? null)
+      setSelectedCollectionId(null)
+      setResponse(null)
+    }
+    setModal(null)
+    showNotice(`Workspace "${target.name}" deleted.`)
+  }
+
   const importWorkspaceFile = async (): Promise<void> => {
     try {
       const selected = await window.postblack.files.importJson()
@@ -1342,9 +1376,7 @@ export function App(): React.JSX.Element {
   ]
 
   return (
-    <div
-      className={`app-shell theme-${ideTheme} vision-${colorVision} density-${ideDensity} font-${ideFontSize}${reduceMotion ? ' reduce-motion' : ''}`}
-    >
+    <div className={shellClassName}>
       <header className="titlebar">
         <div className="brand">
           <div className="brand-mark">
@@ -1611,7 +1643,9 @@ export function App(): React.JSX.Element {
       {modal === 'workspace-settings' && (
         <WorkspaceSettingsModal
           workspace={workspace}
+          canDelete={state.workspaces.length > 1}
           onSave={saveWorkspaceSettings}
+          onDelete={() => deleteWorkspace(workspace.id)}
           onClose={() => setModal(null)}
         />
       )}

@@ -1,6 +1,7 @@
 import { Check, Copy, Eye, EyeOff } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { portalHost } from '../lib/portal-host'
 import type { VariableDetail } from '../../../shared/variables'
 
 interface VariableReferenceProps {
@@ -113,7 +114,7 @@ export function VariableReference({
               <p>Variable not found in the active environment, workspace or globals.</p>
             )}
           </div>,
-          document.body
+          portalHost()
         )}
     </span>
   )

@@ -18,6 +18,7 @@
   --green: #3dd598;
   --orange: #ff9f43;
   --red: #ff5f68;
+  --purple: #a889ff;
   --font-delta: 0px;
 }
 .theme-light {
@@ -36,6 +37,7 @@
   --orange: #a95000;
   --red: #bd2635;
   --cyan: #087f99;
+  --purple: #6d3fd6;
   background: var(--panel);
   color: var(--text);
 }
@@ -1266,7 +1268,7 @@ select {
 }
 .method-put,
 .method-patch {
-  color: #a889ff !important;
+  color: var(--purple) !important;
 }
 .method-delete {
   color: var(--red) !important;

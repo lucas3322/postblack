@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialState, createRequest, type ApiRequest, type AppState, type Workspace } from '../../shared/domain'
+import {
+  createInitialState,
+  createRequest,
+  type ApiRequest,
+  type AppState,
+  type Workspace
+} from '../../shared/domain'
 import { closeRequestTab, openRequestTab, restoreRequestTabSession } from './request-tabs'
 
 describe('request tabs', () => {
@@ -30,9 +36,13 @@ describe('request tabs', () => {
 describe('request tab session', () => {
   const findSaved = (workspace: Workspace, requestId: string): ApiRequest | null =>
     workspace.collections
-      .flatMap((collection) => [...collection.requests, ...collection.folders.flatMap((folder) => folder.requests)])
+      .flatMap((collection) => [
+        ...collection.requests,
+        ...collection.folders.flatMap((folder) => folder.requests)
+      ])
       .find((request) => request.id === requestId) ?? null
-  const same = (first: ApiRequest, second: ApiRequest): boolean => JSON.stringify(first) === JSON.stringify(second)
+  const same = (first: ApiRequest, second: ApiRequest): boolean =>
+    JSON.stringify(first) === JSON.stringify(second)
 
   const setup = (): { state: AppState; saved: ApiRequest; workspaceId: string } => {
     const state = createInitialState()
