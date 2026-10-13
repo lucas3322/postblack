@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { importOpenApi, isOpenApiDocument } from './openapi'
+import { importOpenApi, isOpenApiDocument, resolveSpecUrl } from './openapi'
 import type { ApiRequest } from './domain'
 
 const petstore = {
@@ -567,5 +567,21 @@ describe('importOpenApi persistence', () => {
     const workspace = createWorkspace('Test')
     workspace.collections = [imported.collection]
     expect(() => workspaceSchema.parse(workspace)).not.toThrow()
+  })
+})
+
+describe('resolveSpecUrl', () => {
+  it('rewrites SwaggerHub docs pages to the registry API', () => {
+    expect(resolveSpecUrl('https://app.swaggerhub.com/apis-docs/apis-connect-algar/apis-mot/1.0')).toBe(
+      'https://api.swaggerhub.com/apis/apis-connect-algar/apis-mot/1.0'
+    )
+    expect(resolveSpecUrl(' https://app.swaggerhub.com/apis/acme/pets/2.1.0#/default/get_pets ')).toBe(
+      'https://api.swaggerhub.com/apis/acme/pets/2.1.0'
+    )
+  })
+
+  it('leaves other URLs untouched', () => {
+    expect(resolveSpecUrl('https://api.example.com/swagger.json')).toBe('https://api.example.com/swagger.json')
+    expect(resolveSpecUrl('{{base_url}}/openapi.json')).toBe('{{base_url}}/openapi.json')
   })
 })

@@ -61,6 +61,30 @@ function detectFormat(value: unknown): Format | null {
   return null
 }
 
+/**
+ * Rewrites documentation-page URLs (which serve HTML, or 404 outside a browser) to the raw spec URL.
+ * Currently handles SwaggerHub: app.swaggerhub.com/{apis|apis-docs}/{owner}/{api}/{version}.
+ */
+export function resolveSpecUrl(input: string): string {
+  const trimmed = input.trim()
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    return trimmed
+  }
+  if (parsed.hostname === 'app.swaggerhub.com') {
+    const [kind, owner, api, version] = parsed.pathname.split('/').filter(Boolean)
+    if ((kind === 'apis' || kind === 'apis-docs') && owner && api) {
+      const segments = [owner, api, version]
+        .filter((segment): segment is string => Boolean(segment))
+        .map(encodeURIComponent)
+      return `https://api.swaggerhub.com/apis/${segments.join('/')}`
+    }
+  }
+  return trimmed
+}
+
 export function isOpenApiDocument(value: unknown): boolean {
   let candidate = value
   if (typeof value === 'string') {
