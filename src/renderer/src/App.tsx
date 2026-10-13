@@ -83,7 +83,14 @@ import {
   SIDEBAR_SPLITTER_WIDTH,
   sidebarWidthPercentage
 } from './lib/sidebar-size'
-import { closeRequestTab, openRequestTab, type OpenRequestTab } from './request-tabs'
+import {
+  closeRequestTab,
+  openRequestTab,
+  REQUEST_TAB_SESSION_KEY,
+  restoreRequestTabSession,
+  type OpenRequestTab,
+  type RequestTabSession
+} from './request-tabs'
 
 type SaveState = 'saved' | 'saving' | 'error'
 type ModalName =
@@ -189,8 +196,19 @@ export function App(): React.JSX.Element {
     window.postblack
       .loadState()
       .then((loaded) => {
+        const session = restoreRequestTabSession(
+          readPreference(REQUEST_TAB_SESSION_KEY, ''),
+          loaded,
+          findRequest,
+          sameRequestContent
+        )
         setState(loaded)
-        setSelectedRequestId(firstRequest(loaded)?.id ?? null)
+        if (session) {
+          setOpenTabs(session.openTabs)
+          setRequestDrafts(session.requestDrafts)
+          setScratchRequests(session.scratchRequests)
+        }
+        setSelectedRequestId(session?.selectedRequestId ?? firstRequest(loaded)?.id ?? null)
         hydrated.current = true
       })
       .catch(() => {
@@ -214,6 +232,21 @@ export function App(): React.JSX.Element {
     }, delay)
     return () => window.clearTimeout(timeout)
   }, [state])
+
+  const tabSession = useRef<RequestTabSession | null>(null)
+  useEffect(() => {
+    if (!hydrated.current) return
+    tabSession.current = { openTabs, requestDrafts, scratchRequests, selectedRequestId }
+    const timeout = window.setTimeout(() => persistTabSession(tabSession.current), 300)
+    return () => window.clearTimeout(timeout)
+  }, [openTabs, requestDrafts, scratchRequests, selectedRequestId])
+
+  useEffect(() => {
+    // Flush pending edits when the window closes before the debounce fires.
+    const flush = (): void => persistTabSession(tabSession.current)
+    window.addEventListener('beforeunload', flush)
+    return () => window.removeEventListener('beforeunload', flush)
+  }, [])
 
   const workspace = state?.workspaces.find((item) => item.id === state.activeWorkspaceId) ?? null
   const persistedRequest = workspace ? findRequest(workspace, selectedRequestId) : null
@@ -2182,6 +2215,10 @@ function readPreference(key: string, fallback: string): string {
   } catch {
     return fallback
   }
+}
+
+function persistTabSession(session: RequestTabSession | null): void {
+  if (session) persistPreference(REQUEST_TAB_SESSION_KEY, JSON.stringify(session))
 }
 
 function persistPreference(key: string, value: string): void {
