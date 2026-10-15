@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 — 2026-10-15
+
+- Release inicial do Postblack.
+
 ## 1.0.0 — 2026-10-15
 
 - Merge pull request #2 from lucas3322/feat/visual-refresh-openapi (f5cff73)
