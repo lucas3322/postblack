@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2 — 2026-10-15
+
+- style: formata teste do openapi (af1e7f0)
+
 ## 1.0.1 — 2026-10-15
 
 - Release inicial do Postblack.
