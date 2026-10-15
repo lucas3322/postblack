@@ -2,7 +2,7 @@
   "name": "postblack",
   "productName": "Postblack",
   "desktopName": "com.postblack.app",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A dark, local-first API client for developers.",
   "repository": {
     "type": "git",

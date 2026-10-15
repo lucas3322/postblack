@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3 — 2026-10-15
+
+- style: seção de IA da landing como janela do app (3475564)
+
 ## 1.0.2 — 2026-10-15
 
 - style: formata teste do openapi (af1e7f0)
