@@ -37,6 +37,7 @@
 
         <nav id="site-nav" aria-label="Navegação principal">
           <a href="#produto">Produto</a>
+          <a href="#ia" class="nav-ai">IA <span class="nav-new">Novo</span></a>
           <a href="#fluxo">Fluxo</a>
           <a href="#recursos">Recursos</a>
           <a href="#seguranca">Segurança</a>
@@ -52,9 +53,9 @@
       <section class="hero" id="topo" aria-labelledby="hero-title">
         <div class="hero-backdrop" aria-hidden="true"></div>
         <div class="hero-copy">
-          <a class="hero-pill" href="#recursos">
-            <span class="pill-tag">Novo</span>
-            Importação OpenAPI e paleta de comandos <kbd>⌘K</kbd>
+          <a class="hero-pill" href="#ia">
+            <span class="pill-tag pill-tag-ai">Novo</span>
+            Assistente de IA com Claude, ChatGPT e Gemini
             <span aria-hidden="true">→</span>
           </a>
           <h1 id="hero-title">Sua API.<br /><em>Sem ruído.</em></h1>
@@ -201,6 +202,115 @@
           <div><dt>Escopos de variável</dt><dd>3</dd></div>
           <div><dt>Contas para criar</dt><dd>0</dd></div>
         </dl>
+      </section>
+
+
+      <!-- AI ASSISTANT -->
+      <section class="section ai-section" id="ia" aria-labelledby="ia-title">
+        <div class="ai-aura" aria-hidden="true"></div>
+        <div class="section-heading reveal">
+          <p class="eyebrow eyebrow-ai"><span class="ai-spark" aria-hidden="true">✦</span> Assistente de IA <span class="badge-new">Novo</span></p>
+          <h2 id="ia-title">Uma IA que lê a sua API.<br /><span class="ai-grad">E mexe nela quando você pede.</span></h2>
+          <p class="section-lead">Abra o painel com <kbd>⌘J</kbd>. Ele enxerga a request aberta e a última resposta, explica o que voltou, ajusta payload, headers e params e monta cURLs — com a sua chave do Claude, do ChatGPT ou do Gemini.</p>
+        </div>
+
+        <div class="ai-showcase reveal" data-ai-demo>
+          <div class="ai-req" aria-hidden="true">
+            <div class="ai-req-bar"><b class="m m-post">POST</b><code><span class="tok-var">{{base_url}}</span>/webhooks/vendas</code><span class="ai-send-pill">Send</span></div>
+            <div class="ai-req-tabs"><span>Params</span><span class="on">Headers <i data-ai-header-count>2</i></span><span>Body</span><span>Auth</span></div>
+            <ul class="ai-req-headers">
+              <li><span>Content-Type</span><span>application/json</span></li>
+              <li><span>X-Signature</span><span class="tok-var">{{secret}}</span></li>
+              <li class="ai-new-row" data-ai-new-header><div><span>Idempotency-Key</span><span class="tok-var">{{$guid}}</span></div></li>
+            </ul>
+            <pre class="ai-req-body"><code>{
+  <span class="j-key">"event"</span>: <span class="j-str">"sale.created"</span>,
+  <span class="j-key">"amount"</span>: <span class="ai-swap" data-ai-swap><span class="ai-old j-num">129.9</span><span class="ai-new j-num">150</span></span>,
+  <span class="j-key">"currency"</span>: <span class="j-str">"BRL"</span>
+}</code></pre>
+            <div class="ai-req-status"><span class="status-ok">200 OK</span><span>248 ms</span><span>57 B</span><span class="ai-unsaved" data-ai-unsaved>● alterações não salvas</span></div>
+          </div>
+
+          <div class="ai-chat" role="img" aria-label="Demonstração: o usuário pede para trocar o amount para 150 e adicionar um Idempotency-Key; a IA explica, propõe as duas alterações e elas são aplicadas na request com um clique.">
+            <div class="ai-chat-head"><span class="ai-spark" aria-hidden="true">✦</span><strong>Assistente</strong><span class="ai-auto">Automático</span><button class="replay" type="button" data-ai-replay hidden>Repetir</button></div>
+            <div class="ai-chat-body" aria-hidden="true">
+              <div class="ai-step ai-user" data-ai-step>Troca o amount pra 150 e adiciona um Idempotency-Key?</div>
+              <div class="ai-slot">
+                <div class="ai-step ai-typing" data-ai-typing><i></i><i></i><i></i></div>
+                <div class="ai-step ai-reply" data-ai-step>O webhook respondeu <code>200 OK</code>, então o formato está certo. Webhooks de venda costumam ser reenviados — o <code>Idempotency-Key</code> evita lançamento duplicado.</div>
+              </div>
+              <div class="ai-step ai-proposal" data-ai-step data-ai-proposal>
+                <strong data-ai-proposal-title>Alterações sugeridas</strong>
+                <ul>
+                  <li><span>Body</span>amount → 150</li>
+                  <li><span>Header</span>Adicionar Idempotency-Key</li>
+                </ul>
+                <span class="ai-apply" data-ai-apply><span data-ai-apply-label>✓ Aplicar na request</span></span>
+              </div>
+              <div class="ai-step ai-meta" data-ai-step><i class="mk mk-openai">◎</i>ChatGPT · 2.4s <em>Claude no limite — respondeu o próximo</em></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-grid">
+          <article class="ai-card ai-route-card reveal" aria-labelledby="ai-route-title">
+            <div class="card-copy">
+              <p class="card-kicker">Escolha inteligente</p>
+              <h3 id="ai-route-title">Três IAs. Uma ordem. Zero espera.</h3>
+              <p>Cadastre uma, duas ou as três e defina a prioridade. Se uma bater no limite ou cair, a próxima responde na hora. No modo inteligente, o Postblack também prefere a mais rápida em perguntas curtas e a de janela maior quando a resposta é enorme.</p>
+            </div>
+            <ol class="ai-route" data-ai-route aria-label="Exemplo de roteamento: Claude atingiu o limite, o ChatGPT respondeu e o Gemini ficou de reserva.">
+              <li data-ai-lane>
+                <span class="lane-rank">1</span><i class="mk mk-anthropic" aria-hidden="true">✳</i><strong>Claude</strong>
+                <span class="lane-track" aria-hidden="true"><span class="lane-fill"></span></span>
+                <span class="lane-state" data-state-final="429 · limite" data-tone="bad">aguardando</span>
+              </li>
+              <li data-ai-lane>
+                <span class="lane-rank">2</span><i class="mk mk-openai" aria-hidden="true">◎</i><strong>ChatGPT</strong>
+                <span class="lane-track" aria-hidden="true"><span class="lane-fill"></span></span>
+                <span class="lane-state" data-state-final="✓ respondeu" data-tone="good">aguardando</span>
+              </li>
+              <li data-ai-lane>
+                <span class="lane-rank">3</span><i class="mk mk-gemini" aria-hidden="true">✦</i><strong>Gemini</strong>
+                <span class="lane-track" aria-hidden="true"><span class="lane-fill"></span></span>
+                <span class="lane-state" data-state-final="reserva" data-tone="idle">aguardando</span>
+              </li>
+            </ol>
+          </article>
+
+          <article class="ai-card reveal" aria-labelledby="ai-models-title">
+            <div class="card-copy">
+              <p class="card-kicker">Sua chave, seu modelo</p>
+              <h3 id="ai-models-title">Você escolhe o modelo de cada uma.</h3>
+              <p>A lista vem direto da API do provedor com a sua chave — do mais barato ao mais capaz. Um botão testa a conexão antes de usar.</p>
+            </div>
+            <div class="ai-keys" aria-hidden="true">
+              <div><i class="mk mk-anthropic">✳</i><code>sk-ant-…9f2a</code><span class="key-on">Ativa</span></div>
+              <div><i class="mk mk-openai">◎</i><code>sk-…77b1</code><span class="key-on">Ativa</span></div>
+              <div><i class="mk mk-gemini">✦</i><code>AIza…</code><span class="key-off">Sem chave</span></div>
+            </div>
+          </article>
+
+          <article class="ai-card reveal" aria-labelledby="ai-safe-title">
+            <div class="card-copy">
+              <p class="card-kicker">Privacidade</p>
+              <h3 id="ai-safe-title">Segredos ficam de fora.</h3>
+              <p>Chaves criptografadas pelo chaveiro do sistema. Antes de cada envio, tokens, senhas, <code>Authorization</code>, cookies e valores com cara de credencial viram <code>••••••</code>. A IA vê a estrutura, não o segredo.</p>
+            </div>
+            <pre class="ai-mask" aria-hidden="true"><code><span class="j-key">Authorization</span>: Bearer <span class="mask">••••••</span>
+<span class="j-key">X-Tenant</span>: acme
+<span class="j-key">api_token</span>: <span class="mask">••••••</span></code></pre>
+          </article>
+        </div>
+
+        <ul class="ai-caps">
+          <li class="reveal"><span class="cap-ico" aria-hidden="true">?</span><div><h3>Explica respostas</h3><p>Status, campos e erros em português claro — e o que fazer a seguir.</p></div></li>
+          <li class="reveal"><span class="cap-ico" aria-hidden="true">{ }</span><div><h3>Edita o payload</h3><p>Peça “troque o amount para 150” e só aquele valor muda.</p></div></li>
+          <li class="reveal"><span class="cap-ico" aria-hidden="true">H</span><div><h3>Headers e params</h3><p>Adiciona, remove e ajusta, sempre reaproveitando suas <code>{{variáveis}}</code>.</p></div></li>
+          <li class="reveal"><span class="cap-ico" aria-hidden="true">$_</span><div><h3>Monta cURL</h3><p>Copie ou abra o comando como uma request nova.</p></div></li>
+          <li class="reveal"><span class="cap-ico" aria-hidden="true">↺</span><div><h3>Você aprova</h3><p>Nada muda sem um clique em Aplicar — e Desfazer está logo ali.</p></div></li>
+          <li class="reveal"><span class="cap-ico" aria-hidden="true">⌘J</span><div><h3>Sempre à mão</h3><p>Botão na barra lateral, no editor, em cada resposta e no <kbd>⌘K</kbd>.</p></div></li>
+        </ul>
       </section>
 
       <!-- WORKFLOW -->
@@ -481,7 +591,7 @@
           <div class="security-copy reveal">
             <p class="eyebrow">Local-first &amp; seguro</p>
             <h2 id="seg-title">Seus dados não saem da sua máquina.</h2>
-            <p class="section-lead">Workspaces, coleções, variáveis e histórico são gravados em JSON no seu disco. As requests vão direto do seu computador para a sua API — sem proxy, sem sincronização, sem login.</p>
+            <p class="section-lead">Workspaces, coleções, variáveis e histórico são gravados em JSON no seu disco. As requests vão direto do seu computador para a sua API — sem proxy, sem sincronização, sem login. A IA é opcional: só fala com o provedor que você cadastrar, quando você pedir.</p>
             <div class="flow" aria-label="Fluxo de dados: Postblack no seu computador conversa diretamente com a sua API">
               <div class="flow-node"><span>Seu disco</span><small>JSON local</small></div>
               <span class="flow-line" aria-hidden="true"></span>
@@ -617,6 +727,10 @@
           <details>
             <summary>Meus dados vão para a nuvem?</summary>
             <div class="faq-body"><p>Não. Workspaces, coleções, variáveis e histórico ficam em arquivos JSON no seu computador. Não existe conta nem servidor do Postblack. A única chamada própria do app é a verificação de atualizações nos GitHub Releases públicos.</p></div>
+          </details>
+          <details>
+            <summary>E a IA, manda meus dados para onde?</summary>
+            <div class="faq-body"><p>Só para o provedor que você cadastrou (Anthropic, OpenAI ou Google), direto do seu computador e só quando você pede algo no painel. Vai a request aberta e, se você deixar, a última resposta — com tokens, senhas e cookies mascarados. As chaves ficam criptografadas no seu chaveiro e nunca entram em exports. Sem chave cadastrada, nada sai.</p></div>
           </details>
           <details>
             <summary>Importa Swagger / OpenAPI?</summary>

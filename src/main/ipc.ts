@@ -1,10 +1,14 @@
-import { app, clipboard, dialog, ipcMain } from 'electron'
+import { app, clipboard, dialog, ipcMain, safeStorage } from 'electron'
 import { readFile, stat, writeFile } from 'node:fs/promises'
-import { basename, extname } from 'node:path'
+import { basename, extname, join } from 'node:path'
 import { z } from 'zod'
 import type { AppState, ExecuteRequestInput, JsonFileExportInput } from '../shared/domain'
 import { generateCurl, importCurl } from '../shared/curl'
 import { appStateSchema, executeRequestSchema } from '../shared/schemas'
+import { AI_PROVIDERS, aiChatInputSchema, aiSettingsSchema } from '../shared/ai/types'
+import { AiService } from './ai/ai-service'
+import { AiStore } from './ai/ai-store'
+import { PROVIDER_ADAPTERS } from './ai/providers'
 import { executeHttpRequest } from './http-executor'
 import { JsonStateStore } from './state-store'
 import { checkForUpdates, downloadUpdate, openDownloadedUpdate, openLatestRelease } from './updater'
@@ -23,8 +27,16 @@ export const IPC_CHANNELS = {
   updateCheck: 'postblack:update:check',
   updateDownload: 'postblack:update:download',
   updateOpenRelease: 'postblack:update:open-release',
-  updateProgress: 'postblack:update:progress'
+  updateProgress: 'postblack:update:progress',
+  aiState: 'postblack:ai:state',
+  aiSaveSettings: 'postblack:ai:save-settings',
+  aiSetKey: 'postblack:ai:set-key',
+  aiListModels: 'postblack:ai:list-models',
+  aiTest: 'postblack:ai:test',
+  aiChat: 'postblack:ai:chat'
 } as const
+
+const aiProviderSchema = z.enum(AI_PROVIDERS)
 
 const jsonFileExportSchema = z.object({
   suggestedName: z.string().trim().min(1).max(180),
@@ -107,6 +119,29 @@ export function registerIpcHandlers(store: JsonStateStore): void {
     return { path }
   })
   ipcMain.handle(IPC_CHANNELS.updateOpenRelease, () => openLatestRelease())
+
+  const ai = new AiService(
+    new AiStore(join(app.getPath('userData'), 'postblack-ai.json'), {
+      available: () => safeStorage.isEncryptionAvailable(),
+      encrypt: (plain) => safeStorage.encryptString(plain),
+      decrypt: (cipher) => safeStorage.decryptString(cipher)
+    }),
+    PROVIDER_ADAPTERS
+  )
+  ipcMain.handle(IPC_CHANNELS.aiState, () => ai.publicState())
+  ipcMain.handle(IPC_CHANNELS.aiSaveSettings, (_event, raw: unknown) =>
+    ai.saveSettings(aiSettingsSchema.parse(raw))
+  )
+  ipcMain.handle(IPC_CHANNELS.aiSetKey, (_event, provider: unknown, key: unknown) =>
+    ai.setKey(aiProviderSchema.parse(provider), z.string().max(500).nullable().parse(key))
+  )
+  ipcMain.handle(IPC_CHANNELS.aiListModels, (_event, provider: unknown) =>
+    ai.listModels(aiProviderSchema.parse(provider))
+  )
+  ipcMain.handle(IPC_CHANNELS.aiTest, (_event, provider: unknown) =>
+    ai.test(aiProviderSchema.parse(provider))
+  )
+  ipcMain.handle(IPC_CHANNELS.aiChat, (_event, raw: unknown) => ai.chat(aiChatInputSchema.parse(raw)))
 }
 
 function mimeTypeForPath(filePath: string): string {

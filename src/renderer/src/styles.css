@@ -2407,6 +2407,7 @@ select {
 }
 .bearer-input input {
   flex: 1;
+  width: 100%;
   min-width: 0;
   height: 38px;
   padding: 0 12px;

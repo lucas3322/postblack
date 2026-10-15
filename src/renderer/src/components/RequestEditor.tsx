@@ -1,4 +1,17 @@
-import { Check, Code2, Eye, EyeOff, FileUp, Plus, Save, Send, Trash2, Variable, X } from 'lucide-react'
+import {
+  Check,
+  Code2,
+  Eye,
+  EyeOff,
+  FileUp,
+  Plus,
+  Save,
+  Send,
+  Sparkles,
+  Trash2,
+  Variable,
+  X
+} from 'lucide-react'
 import { useState } from 'react'
 import { isCurlCommand } from '../../../shared/curl'
 import {
@@ -32,6 +45,7 @@ interface RequestEditorProps {
   onOpenCurl: () => void
   onImportCurl: (command: string) => Promise<void>
   onOpenVariables: () => void
+  onOpenAi?: () => void
 }
 
 export function RequestEditor({
@@ -47,7 +61,8 @@ export function RequestEditor({
   onSend,
   onOpenCurl,
   onImportCurl,
-  onOpenVariables
+  onOpenVariables,
+  onOpenAi
 }: RequestEditorProps): React.JSX.Element {
   const [tab, setTab] = useState<RequestTab>('params')
   const [importingCurl, setImportingCurl] = useState(false)
@@ -86,6 +101,11 @@ export function RequestEditor({
         <button className="button secondary" onClick={onOpenCurl}>
           <Code2 size={15} /> cURL
         </button>
+        {onOpenAi && (
+          <button className="button secondary ai-trigger" onClick={onOpenAi} title="Assistente de IA (⌘J)">
+            <Sparkles size={15} /> IA
+          </button>
+        )}
       </div>
       <div className="url-bar">
         <MethodSelect value={request.method} onChange={(method) => patch({ method })} />

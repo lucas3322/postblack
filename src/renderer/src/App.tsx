@@ -14,6 +14,7 @@ import {
   Search,
   Send,
   Settings2,
+  Sparkles,
   Sun,
   Terminal,
   Variable
@@ -39,6 +40,10 @@ import {
 import { resolveVariables, scopedVariableDetails, scopedVariables } from '../../shared/variables'
 import { KeyValueEditor } from './components/KeyValueEditor'
 import { BrandLogo } from './components/BrandLogo'
+import { AiAssistantPanel, type AiConversationMessage, type AiPrompt } from './components/AiAssistantPanel'
+import { AiSettingsModal } from './components/AiSettingsModal'
+import { applyAiActions } from '../../shared/ai/actions'
+import type { AiAction, AiPublicState, AiTask } from '../../shared/ai/types'
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette'
 import { ImportModal, type ImportTab } from './components/ImportModal'
 import { CollectionOverview } from './components/CollectionOverview'
@@ -95,7 +100,15 @@ import {
 
 type SaveState = 'saved' | 'saving' | 'error'
 type ModalName =
-  'environment' | 'curl' | 'import' | 'history' | 'workspace' | 'workspace-settings' | 'ide-settings' | null
+  | 'environment'
+  | 'curl'
+  | 'import'
+  | 'history'
+  | 'workspace'
+  | 'workspace-settings'
+  | 'ide-settings'
+  | 'ai-settings'
+  | null
 
 interface TextDialog {
   title: string
@@ -118,6 +131,14 @@ export function App(): React.JSX.Element {
   const [sending, setSending] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [modal, setModal] = useState<ModalName>(null)
+  const [aiOpen, setAiOpen] = useState(() => readPreference('postblack:ai-open', 'false') === 'true')
+  const [aiWidth, setAiWidth] = useState(() =>
+    clampAiWidth(Number(readPreference('postblack:ai-width', '400')))
+  )
+  const [aiState, setAiState] = useState<AiPublicState | null>(null)
+  const [aiConversations, setAiConversations] = useState<Record<string, AiConversationMessage[]>>({})
+  const [aiPrompt, setAiPrompt] = useState<AiPrompt | null>(null)
+  const aiUndo = useRef<Record<string, ApiRequest>>({})
   const [importTab, setImportTab] = useState<ImportTab>('curl')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [textDialog, setTextDialog] = useState<TextDialog | null>(null)
@@ -160,6 +181,16 @@ export function App(): React.JSX.Element {
 
   const shellClassName = `app-shell theme-${ideTheme} vision-${colorVision} density-${ideDensity} font-${ideFontSize}${reduceMotion ? ' reduce-motion' : ''}`
   useLayoutEffect(() => syncPortalHost(shellClassName), [shellClassName])
+
+  useEffect(() => {
+    void window.postblack.ai
+      ?.state()
+      .then(setAiState)
+      .catch(() => setAiState(null))
+  }, [])
+
+  useEffect(() => persistPreference('postblack:ai-open', String(aiOpen)), [aiOpen])
+  useEffect(() => persistPreference('postblack:ai-width', String(aiWidth)), [aiWidth])
 
   useEffect(() => {
     const element = mainPaneRef.current
@@ -1127,6 +1158,72 @@ export function App(): React.JSX.Element {
     )
   }
 
+  const askAi = (text: string, task?: AiTask): void => {
+    setAiOpen(true)
+    setAiPrompt({ nonce: Date.now(), text, task })
+  }
+
+  const updateAiConversation = (
+    key: string,
+    update: (messages: AiConversationMessage[]) => AiConversationMessage[]
+  ): void => {
+    setAiConversations((current) => ({ ...current, [key]: update(current[key] ?? []) }))
+  }
+
+  const setAiMessageStatus = (
+    key: string,
+    messageId: string,
+    status: AiConversationMessage['status']
+  ): void => {
+    updateAiConversation(key, (messages) =>
+      messages.map((message) => (message.id === messageId ? { ...message, status } : message))
+    )
+  }
+
+  const applyAiProposal = (key: string, messageId: string, actions: AiAction[]): string => {
+    if (!selectedRequest || selectedRequest.id !== key) return 'Abra a request desta conversa para aplicar.'
+    const result = applyAiActions(selectedRequest, actions)
+    if (!result.applied.length)
+      return `Nada aplicado: ${result.skipped.map((entry) => entry.reason).join(', ')}.`
+    aiUndo.current[`${key}:${messageId}`] = selectedRequest
+    editRequest(result.request)
+    setAiMessageStatus(key, messageId, 'applied')
+    showNotice(`${result.applied.length} alteração(ões) aplicada(s). Revise e salve com ⌘S.`)
+    return result.skipped.length
+      ? `${result.skipped.length} ignorada(s): ${result.skipped.map((entry) => entry.reason).join(', ')}.`
+      : ''
+  }
+
+  const undoAiProposal = (key: string, messageId: string): void => {
+    const snapshot = aiUndo.current[`${key}:${messageId}`]
+    if (!snapshot || selectedRequestId !== key) {
+      showNotice('Abra a request desta conversa para desfazer.')
+      return
+    }
+    editRequest(snapshot)
+    delete aiUndo.current[`${key}:${messageId}`]
+    setAiMessageStatus(key, messageId, 'undone')
+  }
+
+  const importCurlAsScratchRequest = async (command: string): Promise<void> => {
+    if (!workspace) return
+    try {
+      const imported = await window.postblack.importCurl(command)
+      const request = { ...imported.request, name: 'Request gerada pela IA' }
+      setScratchRequests((current) => ({ ...current, [request.id]: request }))
+      setOpenTabs((current) => [
+        ...current,
+        { workspaceId: workspace.id, requestId: request.id, pinned: true }
+      ])
+      setSelectedRequestId(request.id)
+      setSelectedCollectionId(null)
+      setResponse(null)
+      showNotice('cURL aberto em uma nova aba.')
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : 'Não foi possível importar o cURL.')
+    }
+  }
+
   const importCurlCommand = async (): Promise<void> => {
     if (!workspace || !curlInput.trim()) return
     try {
@@ -1169,6 +1266,11 @@ export function App(): React.JSX.Element {
         event.preventDefault()
         setModal(null)
         setPaletteOpen((current) => !current)
+        return
+      }
+      if (commandPressed && key === 'j' && !textDialog && !closingDirtyTabId) {
+        event.preventDefault()
+        setAiOpen((current) => !current)
         return
       }
       if (paletteOpen) return
@@ -1308,6 +1410,36 @@ export function App(): React.JSX.Element {
       }
     },
     {
+      id: 'action-ai',
+      group: 'Actions',
+      title: aiOpen ? 'Fechar assistente de IA' : 'Abrir assistente de IA',
+      keywords: 'ai ia assistant claude chatgpt gemini gpt',
+      icon: <Sparkles size={15} />,
+      shortcut: '⌘J',
+      run: () => setAiOpen((current) => !current)
+    },
+    ...(displayedResponse && selectedRequest
+      ? [
+          {
+            id: 'action-ai-explain',
+            group: 'Actions' as const,
+            title: 'Explicar resposta com IA',
+            keywords: 'ai ia explain explicar resposta',
+            icon: <Sparkles size={15} />,
+            run: () =>
+              askAi('Explique esta resposta: o que cada parte significa e se tem algo estranho.', 'explain')
+          }
+        ]
+      : []),
+    {
+      id: 'action-ai-settings',
+      group: 'Actions',
+      title: 'Configurações de IA',
+      keywords: 'ai ia api key chave modelo claude chatgpt gemini openai anthropic',
+      icon: <Sparkles size={15} />,
+      run: () => setModal('ai-settings')
+    },
+    {
       id: 'action-settings',
       group: 'Actions',
       title: 'IDE settings',
@@ -1433,7 +1565,9 @@ export function App(): React.JSX.Element {
         ref={workbenchRef}
         className="workbench"
         style={{
-          gridTemplateColumns: `48px ${sidebarWidth}px ${SIDEBAR_SPLITTER_WIDTH}px minmax(0, 1fr)`
+          gridTemplateColumns: `48px ${sidebarWidth}px ${SIDEBAR_SPLITTER_WIDTH}px minmax(0, 1fr)${
+            aiOpen ? ` ${aiWidth}px` : ''
+          }`
         }}
       >
         <nav className="activity-bar">
@@ -1445,6 +1579,14 @@ export function App(): React.JSX.Element {
           </button>
           <button className="activity" onClick={() => setModal('history')} title="History">
             <History size={19} />
+          </button>
+          <button
+            className={`activity activity-ai${aiOpen ? ' active' : ''}`}
+            onClick={() => setAiOpen((current) => !current)}
+            title="Assistente de IA (⌘J)"
+            aria-pressed={aiOpen}
+          >
+            <Sparkles size={19} />
           </button>
           <div className="activity-spacer" />
           <button className="activity" onClick={() => setModal('ide-settings')} title="IDE settings">
@@ -1577,6 +1719,7 @@ export function App(): React.JSX.Element {
                 onOpenCurl={() => void openCurl()}
                 onImportCurl={importCurlIntoCurrentRequest}
                 onOpenVariables={() => setModal('environment')}
+                onOpenAi={() => setAiOpen(true)}
               />
               <RequestPaneSplitter
                 percentage={requestPanePercentage}
@@ -1588,7 +1731,11 @@ export function App(): React.JSX.Element {
                 }}
                 onReset={() => setRequestPaneRatio(DEFAULT_REQUEST_PANE_RATIO)}
               />
-              <ResponseViewer response={displayedResponse} sending={sending} />
+              <ResponseViewer
+                response={displayedResponse}
+                sending={sending}
+                onAskAi={(text) => askAi(text, 'explain')}
+              />
             </>
           ) : (
             <EmptyWorkspace
@@ -1602,6 +1749,33 @@ export function App(): React.JSX.Element {
             />
           )}
         </main>
+        {aiOpen && (
+          <AiAssistantPanel
+            aiState={aiState}
+            conversationKey={selectedRequestId ?? `workspace:${workspace.id}`}
+            request={selectedCollection ? null : selectedRequest}
+            response={selectedCollection ? null : displayedResponse}
+            variables={Object.entries(variableDetails).map(([key, detail]) => ({
+              key,
+              value: detail.value,
+              scope: detail.scope
+            }))}
+            environmentName={
+              workspace.environments.find((item) => item.id === workspace.activeEnvironmentId)?.name ?? null
+            }
+            messages={aiConversations[selectedRequestId ?? `workspace:${workspace.id}`] ?? []}
+            prompt={aiPrompt}
+            width={aiWidth}
+            onWidth={(width) => setAiWidth(clampAiWidth(width))}
+            onMessages={updateAiConversation}
+            onApply={applyAiProposal}
+            onUndo={undoAiProposal}
+            onImportCurl={(command) => void importCurlAsScratchRequest(command)}
+            onCopy={(text) => void window.postblack.clipboard.copyText(text)}
+            onOpenSettings={() => setModal('ai-settings')}
+            onClose={() => setAiOpen(false)}
+          />
+        )}
       </div>
 
       <footer className="statusbar">
@@ -1648,6 +1822,9 @@ export function App(): React.JSX.Element {
           onDelete={() => deleteWorkspace(workspace.id)}
           onClose={() => setModal(null)}
         />
+      )}
+      {modal === 'ai-settings' && aiState && (
+        <AiSettingsModal state={aiState} onState={setAiState} onClose={() => setModal(null)} />
       )}
       {modal === 'ide-settings' && (
         <IdeSettingsModal
@@ -2253,6 +2430,10 @@ function readPreference(key: string, fallback: string): string {
 
 function persistTabSession(session: RequestTabSession | null): void {
   if (session) persistPreference(REQUEST_TAB_SESSION_KEY, JSON.stringify(session))
+}
+
+function clampAiWidth(width: number): number {
+  return Number.isFinite(width) ? Math.min(Math.max(Math.round(width), 320), 720) : 400
 }
 
 function persistPreference(key: string, value: string): void {

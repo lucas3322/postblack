@@ -19,6 +19,29 @@ O botão **Import** (ou `⌘K` → "Import…") reúne três origens:
 `⌘K` (ou `Ctrl+K`) abre a busca global: requests de todas as coleções (por nome ou URL), coleções,
 workspaces, troca de ambiente, tema e as ações principais.
 
+## Assistente de IA
+
+Ícone ✦ na barra lateral, botão **IA** no editor, **Explicar** na resposta ou `⌘J`. O painel lê a
+request aberta e a última resposta e:
+
+- explica respostas e erros, revisa payloads;
+- propõe edições de body, headers, params, URL, método e auth — aplicadas com um clique e desfeitas
+  com outro (nada muda sem o usuário clicar);
+- monta cURLs, que podem virar uma request nova.
+
+Provedores: Claude (Anthropic), ChatGPT (OpenAI) e Gemini (Google), via SDKs oficiais no processo
+principal. Em **Configurações de IA** cada provedor tem chave, modelo (lista carregada da própria
+API com a chave do usuário) e teste de conexão. As chaves ficam em `postblack-ai.json` no `userData`,
+criptografadas com `safeStorage` e nunca chegam ao renderer nem aos exports de workspace.
+
+Com mais de um provedor ativo, a ordem de prioridade define quem responde. No modo **Inteligente**
+(`src/shared/ai/routing.ts`) o roteador também pula por 90 s um provedor que falhou, evita modelos
+cuja janela de contexto não comporta o pedido e prefere um vizinho comprovadamente mais rápido em
+perguntas curtas. Em qualquer modo, uma falha cai para o próximo provedor.
+
+Antes do envio, tokens, senhas, `Authorization`, cookies e valores com formato de credencial são
+mascarados (`src/shared/ai/context.ts`); dá para desligar nas configurações.
+
 ## Desenvolvimento
 
 ```bash

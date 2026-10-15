@@ -1,4 +1,4 @@
-import { Braces, Check, Clock3, Copy, Database, FileJson2, Play } from 'lucide-react'
+import { Braces, Check, Clock3, Copy, Database, FileJson2, Play, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ResponseSnapshot } from '../../../shared/domain'
 import { selectedResponseText } from '../lib/copy-selection'
@@ -19,10 +19,12 @@ import {
 
 export function ResponseViewer({
   response,
-  sending
+  sending,
+  onAskAi
 }: {
   response: ResponseSnapshot | null
   sending: boolean
+  onAskAi?: (prompt: string) => void
 }): React.JSX.Element {
   const [tab, setTab] = useState<'body' | 'headers' | 'cookies'>('body')
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
@@ -121,6 +123,22 @@ export function ResponseViewer({
               Headers <span>{response.headers.length}</span>
             </button>
           </nav>
+          {onAskAi && (
+            <button
+              className="response-copy ai-explain"
+              title="Pedir para a IA explicar esta resposta"
+              onClick={() =>
+                onAskAi(
+                  response.status >= 400 || response.error
+                    ? 'Por que essa requisição falhou e como eu corrijo?'
+                    : 'Explique esta resposta: o que cada parte significa e se tem algo estranho.'
+                )
+              }
+            >
+              <Sparkles size={13} />{' '}
+              {response.status >= 400 || response.error ? 'Por que falhou?' : 'Explicar'}
+            </button>
+          )}
           <button
             className="response-copy"
             onPointerDown={() => {
