@@ -69,6 +69,7 @@ import {
 } from './components/IdeSettingsModal'
 import { workspaceSchema } from '../../shared/schemas'
 import type { ImportedOpenApi } from '../../shared/openapi'
+import type { ImportedPostman, ImportedPostmanEnvironment } from '../../shared/postman'
 import {
   availablePaneHeight,
   clampRequestPaneHeight,
@@ -1158,6 +1159,48 @@ export function App(): React.JSX.Element {
     )
   }
 
+  const importPostman = (
+    imported: ImportedPostman,
+    environmentFile: ImportedPostmanEnvironment | null
+  ): void => {
+    if (!workspace) return
+    const collection: RequestCollection = {
+      ...imported.collection,
+      name: uniqueName(
+        imported.collection.name,
+        workspace.collections.map((item) => item.name)
+      )
+    }
+    // Collection defaults first, then the environment file's values win.
+    const merged = new Map(imported.variables.map((row) => [row.key, row]))
+    for (const row of environmentFile?.variables ?? []) merged.set(row.key, row)
+    const variables = [...merged.values()]
+    const environment = {
+      id: createId('environment'),
+      name: uniqueName(
+        environmentFile?.name || imported.title,
+        workspace.environments.map((item) => item.name)
+      ),
+      variables
+    }
+    immediateSave.current = true
+    updateWorkspace((current) => ({
+      ...current,
+      updatedAt: nowIso(),
+      collections: [...current.collections, collection],
+      environments: variables.length ? [...current.environments, environment] : current.environments,
+      activeEnvironmentId: variables.length ? environment.id : current.activeEnvironmentId
+    }))
+    setSelectedCollectionId(collection.id)
+    setSelectedRequestId(null)
+    setResponse(null)
+    setModal(null)
+    showNotice(
+      `"${collection.name}" importada do Postman: ${imported.requestCount} requests` +
+        (variables.length ? `, ambiente "${environment.name}" ativado.` : '.')
+    )
+  }
+
   const askAi = (text: string, task?: AiTask): void => {
     setAiOpen(true)
     setAiPrompt({ nonce: Date.now(), text, task })
@@ -1374,6 +1417,14 @@ export function App(): React.JSX.Element {
       keywords: 'openapi swagger spec json import',
       icon: <Braces size={15} />,
       run: () => openImport('openapi')
+    },
+    {
+      id: 'action-import-postman',
+      group: 'Actions',
+      title: 'Import Postman collection',
+      keywords: 'postman collection environment json import migrar',
+      icon: <Send size={15} />,
+      run: () => openImport('postman')
     },
     {
       id: 'action-new-collection',
@@ -1966,6 +2017,7 @@ export function App(): React.JSX.Element {
           onCurlInput={setCurlInput}
           onImportCurl={() => void importCurlCommand()}
           onImportOpenApi={importOpenApiCollection}
+          onImportPostman={importPostman}
           onImportWorkspace={() => void importWorkspaceFile()}
           onClose={() => setModal(null)}
         />

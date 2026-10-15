@@ -2377,3 +2377,58 @@
     transform: translateX(16px);
   }
 }
+
+/* ---------- Postman import ---------- */
+
+.postman-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.postman-files:empty {
+  display: none;
+}
+.postman-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 4px 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  color: var(--text-1);
+  background: var(--surface-3);
+  font-size: calc(12px + var(--font-delta));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  animation: pb-rise 240ms var(--ease-out);
+}
+.postman-file svg {
+  flex: none;
+  color: var(--orange);
+}
+.postman-file.env svg {
+  color: var(--green);
+}
+.postman-file button {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--text-3);
+  background: transparent;
+}
+.postman-file button:hover {
+  color: var(--text-1);
+  background: var(--row-hover);
+}
+.import-preview-badge.postman-badge {
+  color: var(--orange);
+  background: color-mix(in srgb, var(--orange) 14%, transparent);
+}
