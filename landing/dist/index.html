@@ -16,8 +16,8 @@
     />
     <title>Postblack — sua API, sem ruído</title>
     <link rel="icon" type="image/png" href="./assets/favicon.png" />
-    <link rel="stylesheet" href="./styles.css" />
-    <script src="./app.js" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=1.1.0" />
+    <script src="./app.js?v=1.1.0" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -214,40 +214,59 @@
           <p class="section-lead">Abra o painel com <kbd>⌘J</kbd>. Ele enxerga a request aberta e a última resposta, explica o que voltou, ajusta payload, headers e params e monta cURLs — com a sua chave do Claude, do ChatGPT ou do Gemini.</p>
         </div>
 
-        <div class="ai-showcase reveal" data-ai-demo>
-          <div class="ai-req" aria-hidden="true">
-            <div class="ai-req-bar"><b class="m m-post">POST</b><code><span class="tok-var">{{base_url}}</span>/webhooks/vendas</code><span class="ai-send-pill">Send</span></div>
-            <div class="ai-req-tabs"><span>Params</span><span class="on">Headers <i data-ai-header-count>2</i></span><span>Body</span><span>Auth</span></div>
-            <ul class="ai-req-headers">
-              <li><span>Content-Type</span><span>application/json</span></li>
-              <li><span>X-Signature</span><span class="tok-var">{{secret}}</span></li>
-              <li class="ai-new-row" data-ai-new-header><div><span>Idempotency-Key</span><span class="tok-var">{{$guid}}</span></div></li>
-            </ul>
-            <pre class="ai-req-body"><code>{
+        <div class="ai-stage reveal" data-ai-demo>
+          <div class="ai-stage-glow" aria-hidden="true"></div>
+          <div class="app-window ai-window">
+            <div class="win-titlebar" aria-hidden="true">
+              <div class="traffic-lights"><i></i><i></i><i></i></div>
+              <div class="win-title">
+                <img src="./assets/postblack-logo.png" alt="" width="14" height="14" />
+                <span>CRM</span>
+                <span class="win-sep">/</span>
+                <span class="win-muted">Webhooks</span>
+              </div>
+              <div class="win-env"><span class="env-dot"></span>Dev<span class="caret">⌄</span></div>
+            </div>
+            <div class="ai-win-body">
+              <div class="activity-bar ai-acts" aria-hidden="true">
+                <span class="act active"><svg viewBox="0 0 20 20"><path d="M3 5.5h5l1.5 2H17v8H3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+                <span class="act"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.5V10l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                <span class="act act-ai" data-ai-act><svg viewBox="0 0 20 20"><path d="M10 2.5 11.6 8.4 17.5 10l-5.9 1.6L10 17.5l-1.6-5.9L2.5 10l5.9-1.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>
+              </div>
+                <div class="ai-req" aria-hidden="true">
+                  <div class="ai-req-bar"><b class="m m-post">POST</b><code><span class="tok-var">{{base_url}}</span>/webhooks/vendas</code><span class="ai-send-pill">Send</span></div>
+                  <div class="ai-req-tabs"><span>Params</span><span class="on">Headers <i data-ai-header-count>2</i></span><span>Body</span><span>Auth</span></div>
+                  <ul class="ai-req-headers">
+                    <li><span>Content-Type</span><span>application/json</span></li>
+                    <li><span>X-Signature</span><span class="tok-var">{{secret}}</span></li>
+                    <li class="ai-new-row" data-ai-new-header><div><span>Idempotency-Key</span><span class="tok-var">{{$guid}}</span></div></li>
+                  </ul>
+                  <pre class="ai-req-body"><code>{
   <span class="j-key">"event"</span>: <span class="j-str">"sale.created"</span>,
   <span class="j-key">"amount"</span>: <span class="ai-swap" data-ai-swap><span class="ai-old j-num">129.9</span><span class="ai-new j-num">150</span></span>,
   <span class="j-key">"currency"</span>: <span class="j-str">"BRL"</span>
 }</code></pre>
-            <div class="ai-req-status"><span class="status-ok">200 OK</span><span>248 ms</span><span>57 B</span><span class="ai-unsaved" data-ai-unsaved>● alterações não salvas</span></div>
-          </div>
-
-          <div class="ai-chat" role="img" aria-label="Demonstração: o usuário pede para trocar o amount para 150 e adicionar um Idempotency-Key; a IA explica, propõe as duas alterações e elas são aplicadas na request com um clique.">
-            <div class="ai-chat-head"><span class="ai-spark" aria-hidden="true">✦</span><strong>Assistente</strong><span class="ai-auto">Automático</span><button class="replay" type="button" data-ai-replay hidden>Repetir</button></div>
-            <div class="ai-chat-body" aria-hidden="true">
-              <div class="ai-step ai-user" data-ai-step>Troca o amount pra 150 e adiciona um Idempotency-Key?</div>
-              <div class="ai-slot">
-                <div class="ai-step ai-typing" data-ai-typing><i></i><i></i><i></i></div>
-                <div class="ai-step ai-reply" data-ai-step>O webhook respondeu <code>200 OK</code>, então o formato está certo. Webhooks de venda costumam ser reenviados — o <code>Idempotency-Key</code> evita lançamento duplicado.</div>
-              </div>
-              <div class="ai-step ai-proposal" data-ai-step data-ai-proposal>
-                <strong data-ai-proposal-title>Alterações sugeridas</strong>
-                <ul>
-                  <li><span>Body</span>amount → 150</li>
-                  <li><span>Header</span>Adicionar Idempotency-Key</li>
-                </ul>
-                <span class="ai-apply" data-ai-apply><span data-ai-apply-label>✓ Aplicar na request</span></span>
-              </div>
-              <div class="ai-step ai-meta" data-ai-step><i class="mk mk-openai">◎</i>ChatGPT · 2.4s <em>Claude no limite — respondeu o próximo</em></div>
+                  <div class="ai-req-status"><span class="status-ok">200 OK</span><span>248 ms</span><span>57 B</span><span class="ai-unsaved" data-ai-unsaved>● alterações não salvas</span></div>
+                </div>
+                <div class="ai-chat" role="img" aria-label="Demonstração: o usuário pede para trocar o amount para 150 e adicionar um Idempotency-Key; a IA explica, propõe as duas alterações e elas são aplicadas na request com um clique.">
+                  <div class="ai-chat-head"><span class="ai-spark" aria-hidden="true">✦</span><strong>Assistente</strong><span class="ai-auto">Automático</span><button class="replay" type="button" data-ai-replay hidden>Repetir</button></div>
+                  <div class="ai-chat-body" aria-hidden="true">
+                    <div class="ai-step ai-user" data-ai-step>Troca o amount pra 150 e adiciona um Idempotency-Key?</div>
+                    <div class="ai-slot">
+                      <div class="ai-step ai-typing" data-ai-typing><i></i><i></i><i></i></div>
+                      <div class="ai-step ai-reply" data-ai-step>O webhook respondeu <code>200 OK</code>, então o formato está certo. Webhooks de venda costumam ser reenviados — o <code>Idempotency-Key</code> evita lançamento duplicado.</div>
+                    </div>
+                    <div class="ai-step ai-proposal" data-ai-step data-ai-proposal>
+                      <strong data-ai-proposal-title>Alterações sugeridas</strong>
+                      <ul>
+                        <li><span>Body</span>amount → 150</li>
+                        <li><span>Header</span>Adicionar Idempotency-Key</li>
+                      </ul>
+                      <span class="ai-apply" data-ai-apply><span data-ai-apply-label>✓ Aplicar na request</span></span>
+                    </div>
+                    <div class="ai-step ai-meta" data-ai-step><i class="mk mk-openai">◎</i>ChatGPT · 2.4s <em>Claude no limite — respondeu o próximo</em></div>
+                  </div>
+                </div>
             </div>
           </div>
         </div>

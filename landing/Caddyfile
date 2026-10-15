@@ -16,8 +16,12 @@
 	@html path / *.html
 	header @html Cache-Control "public, max-age=0, must-revalidate"
 
-	@assets path *.css *.js *.png
-	header @assets Cache-Control "public, max-age=86400"
+	# CSS and JS change on every deploy while their URLs may not: revalidate (cheap 304 via ETag).
+	@code path *.css *.js
+	header @code Cache-Control "public, no-cache"
+
+	@images path *.png
+	header @images Cache-Control "public, max-age=86400"
 
 	header {
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://api.github.com; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'"

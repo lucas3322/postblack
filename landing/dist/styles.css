@@ -963,18 +963,28 @@ h3 {
 .ai-spark { display: inline-block; color: var(--ai); }
 .ai-grad { background: var(--ai-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-/* Showcase: request on the left, assistant on the right */
-.ai-showcase {
-  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 14px;
-  padding: 14px; border-radius: calc(var(--radius-lg) + 6px);
-  background: linear-gradient(180deg, rgba(20, 30, 48, 0.55), rgba(10, 15, 26, 0.55));
-  border: 1px solid var(--hairline); box-shadow: var(--shadow-lg);
+/* Showcase: the real app window, with the assistant docked on the right */
+.ai-stage { position: relative; }
+.ai-stage-glow {
+  position: absolute; inset: 12% 6% -8%; z-index: -1; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(183, 154, 255, 0.24), rgba(47, 140, 255, 0.1) 60%, transparent);
+  filter: blur(48px);
 }
-.ai-req, .ai-chat {
-  min-width: 0; border-radius: var(--radius-md); background: var(--surface-inset);
-  border: 1px solid var(--hairline); font-size: 12px;
+.ai-window { user-select: none; }
+.ai-win-body { display: grid; grid-template-columns: 44px minmax(0, 1fr) minmax(300px, 0.85fr); min-height: 480px; }
+.ai-acts .act-ai { margin-top: auto; color: var(--ai); transition: background-color 200ms var(--ease-out), transform 140ms var(--ease-out); }
+.ai-acts .act-ai.is-active { background: var(--ai-soft); box-shadow: inset 0 0 0 1px rgba(183, 154, 255, 0.3); }
+.ai-acts .act-ai.is-pressed { transform: scale(0.9); }
+.ai-req { min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; background: #070c16; font-size: 12px; }
+
+/* The assistant is a lighter, translucent layer floating over the editor. */
+.ai-chat {
+  position: relative; z-index: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12px;
+  background: linear-gradient(180deg, rgba(22, 30, 48, 0.82), rgba(13, 19, 32, 0.86));
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  border-left: 1px solid rgba(183, 154, 255, 0.16);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.04), -28px 0 56px -28px rgba(0, 0, 0, 0.7);
 }
-.ai-req { display: flex; flex-direction: column; padding: 14px; gap: 12px; }
 .ai-req-bar { display: flex; align-items: center; gap: 10px; padding: 7px 7px 7px 12px; border-radius: 10px; border: 1px solid var(--hairline-strong); background: rgba(255, 255, 255, 0.02); }
 .ai-req-bar code { flex: 1; min-width: 0; overflow: hidden; color: var(--text); font: 11.5px var(--font-mono); white-space: nowrap; text-overflow: ellipsis; }
 .ai-send-pill { padding: 5px 12px; border-radius: 7px; background: var(--blue); color: #fff; font-weight: 650; font-size: 11px; }
@@ -994,12 +1004,11 @@ h3 {
 .ai-unsaved { margin-left: auto; color: var(--m-post); font-family: var(--font-sans); }
 
 /* Chat */
-.ai-chat { display: flex; flex-direction: column; }
-.ai-chat-head { position: relative; display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--hairline); }
+.ai-chat-head { position: relative; display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; border-bottom: 1px solid var(--hairline); }
 .ai-chat-head strong { font-size: 13px; }
 .ai-auto { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--hairline-strong); color: var(--text-3); font-size: 11px; }
 .ai-chat-head .replay { top: 50%; translate: 0 -50%; }
-.ai-chat-body { display: flex; flex-direction: column; gap: 12px; padding: 16px 14px; font-size: 13px; line-height: 1.55; }
+.ai-chat-body { display: flex; flex-direction: column; gap: 12px; padding: 16px 14px 18px; font-size: 13px; line-height: 1.55; letter-spacing: -0.003em; }
 .ai-user { align-self: flex-end; max-width: 88%; padding: 8px 12px; border-radius: 14px 14px 4px 14px; background: var(--blue); color: #fff; }
 .ai-slot { display: grid; }
 .ai-slot > * { grid-area: 1 / 1; }
@@ -1032,6 +1041,12 @@ h3 {
 .mk-anthropic { background: #d97757; }
 .mk-openai { background: #10a37f; }
 .mk-gemini { background: linear-gradient(135deg, #4285f4, #9b72cb 60%, #d96570); }
+
+/* Entrance: the window rises as a material; the panel then docks from the right, where it lives in the app. */
+.js .ai-stage.reveal { transform: translateY(32px) scale(0.98); transition: opacity 900ms var(--ease), transform 1100ms var(--ease); }
+.js .ai-stage.reveal.is-visible { transform: none; }
+.ai-chat { transition: opacity 420ms var(--ease-out), transform 620ms var(--ease); }
+.js [data-ai-demo]:not(.is-docked) .ai-chat { opacity: 0; transform: translateX(28px); }
 
 /* Scripted states — only when JS runs; without JS the final state shows. */
 .js .ai-step { opacity: 0; transform: translateY(8px) scale(0.98); transition: opacity 360ms var(--ease-out), transform 460ms var(--ease-out); }
@@ -1104,8 +1119,10 @@ h3 {
   .ai-route-card { grid-column: span 2; }
 }
 @media (max-width: 860px) {
-  .ai-showcase { grid-template-columns: 1fr; padding: 10px; }
-  .ai-chat { order: -1; }
+  .ai-win-body { grid-template-columns: 1fr; min-height: 0; }
+  .ai-acts { display: none; }
+  .ai-chat { order: -1; border-left: 0; border-bottom: 1px solid var(--hairline); box-shadow: none; }
+  .js [data-ai-demo]:not(.is-docked) .ai-chat { transform: translateY(12px); }
   .ai-caps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
@@ -1116,13 +1133,14 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .js .ai-step, .ai-new-row, .ai-swap > span, .lane-fill, .ai-apply, .ai-card { transform: none !important; }
+  .js .ai-step, .ai-new-row, .ai-swap > span, .lane-fill, .ai-apply, .ai-card, .js .ai-stage.reveal, .ai-chat, .ai-acts .act-ai { transform: none !important; }
   .js .ai-step { transition: opacity 200ms linear; }
   .ai-typing i { animation: none; }
   .ai-card:hover { transform: none; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .ai-showcase, .ai-card { background: var(--surface-solid); }
+  .ai-card { background: var(--surface-solid); }
+  .ai-chat { background: var(--surface-strong); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .ai-aura { display: none; }
 }
 @media (prefers-contrast: more) {

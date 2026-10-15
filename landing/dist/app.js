@@ -373,6 +373,7 @@ function configureAiDemo() {
   const swap = $('[data-ai-swap]', demo)
   const headerCount = $('[data-ai-header-count]', demo)
   const replay = $('[data-ai-replay]', demo)
+  const activity = $('[data-ai-act]', demo)
   let timers = []
 
   const later = (ms, fn) => timers.push(window.setTimeout(fn, ms))
@@ -393,6 +394,8 @@ function configureAiDemo() {
     typing?.classList.remove('is-shown')
     apply?.classList.remove('is-pressed')
     swap?.classList.remove('is-flash')
+    activity?.classList.remove('is-pressed', 'is-active')
+    demo.classList.remove('is-docked')
     setApplied(false)
     if (replay) replay.hidden = true
   }
@@ -400,6 +403,8 @@ function configureAiDemo() {
   const finish = () => {
     reset()
     steps.forEach(show)
+    activity?.classList.add('is-active')
+    demo.classList.add('is-docked')
     setApplied(true)
     if (replay) replay.hidden = false
   }
@@ -407,29 +412,37 @@ function configureAiDemo() {
   const play = () => {
     reset()
     const [user, reply, , meta] = steps
-    later(250, () => show(user))
-    later(850, () => show(typing))
-    later(2150, () => {
+    // The ✦ icon is "clicked" first, so the panel visibly comes from it.
+    later(500, () => activity?.classList.add('is-pressed'))
+    later(640, () => {
+      activity?.classList.remove('is-pressed')
+      activity?.classList.add('is-active')
+      demo.classList.add('is-docked')
+    })
+    later(1250, () => show(user))
+    later(1850, () => show(typing))
+    later(3150, () => {
       typing?.classList.remove('is-shown')
       show(reply)
     })
-    later(2750, () => show(proposal))
+    later(3750, () => show(proposal))
     // The press reads as a real click: down, then the request updates on release.
-    later(3700, () => apply?.classList.add('is-pressed'))
-    later(3840, () => {
+    later(4700, () => apply?.classList.add('is-pressed'))
+    later(4840, () => {
       apply?.classList.remove('is-pressed')
       setApplied(true)
       swap?.classList.add('is-flash')
     })
-    later(4400, () => show(meta))
-    later(4700, () => swap?.classList.remove('is-flash'))
-    later(4900, () => {
+    later(5400, () => show(meta))
+    later(5700, () => swap?.classList.remove('is-flash'))
+    later(5900, () => {
       if (replay) replay.hidden = false
     })
   }
 
   replay?.addEventListener('click', () => (prefersReducedMotion() ? finish() : play()))
-  playWhenVisible(demo, 0.45, play, finish)
+  // Without JS styles the panel is simply shown; with them it waits to dock.
+  playWhenVisible(demo, 0.35, play, finish)
 }
 
 function configureAiRoute() {
