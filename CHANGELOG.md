@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0 — 2026-10-15
+
+- Merge pull request #2 from lucas3322/feat/visual-refresh-openapi (f5cff73)
+- feat!: assistente de IA com Claude, ChatGPT e Gemini (8725e76)
+- Merge pull request #1 from lucas3322/feat/visual-refresh-openapi (66025cb)
+
 ## 0.17.1 — 2026-10-13
 
 - fix: melhorando cores (5a06536)
