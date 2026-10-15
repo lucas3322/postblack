@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 — 2026-10-15
+
+- feat: importação de coleções e environments do Postman (1249409)
+
 ## 1.0.3 — 2026-10-15
 
 - style: seção de IA da landing como janela do app (3475564)
