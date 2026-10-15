@@ -581,7 +581,9 @@ describe('resolveSpecUrl', () => {
   })
 
   it('leaves other URLs untouched', () => {
-    expect(resolveSpecUrl('https://api.example.com/swagger.json')).toBe('https://api.example.com/swagger.json')
+    expect(resolveSpecUrl('https://api.example.com/swagger.json')).toBe(
+      'https://api.example.com/swagger.json'
+    )
     expect(resolveSpecUrl('{{base_url}}/openapi.json')).toBe('{{base_url}}/openapi.json')
   })
 })
