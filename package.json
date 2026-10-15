@@ -2,7 +2,7 @@
   "name": "postblack",
   "productName": "Postblack",
   "desktopName": "com.postblack.app",
-  "version": "0.16.0",
+  "version": "0.17.1",
   "description": "A dark, local-first API client for developers.",
   "repository": {
     "type": "git",
@@ -36,9 +36,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "@fontsource-variable/inter": "latest",
     "@fontsource-variable/jetbrains-mono": "latest",
+    "@google/genai": "^2.30.0",
     "lucide-react": "latest",
+    "openai": "^7.34.0",
     "react": "latest",
     "react-dom": "latest",
     "zod": "latest"
@@ -49,8 +52,8 @@
     "@types/react-dom": "latest",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "latest",
-    "electron-vite": "^5.0.0",
     "electron-builder": "latest",
+    "electron-vite": "^5.0.0",
     "prettier": "latest",
     "typescript": "latest",
     "vite": "^7.3.6",

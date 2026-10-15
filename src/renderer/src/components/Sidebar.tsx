@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { portalHost } from '../lib/portal-host'
 import type {
   ApiRequest,
   FolderColor,
@@ -380,7 +381,7 @@ export function Sidebar({
               onClick={() => runMenuAction(onDeleteRequest)}
             />
           </div>,
-          document.body
+          portalHost()
         )}
       {collectionMenu &&
         createPortal(
@@ -456,7 +457,7 @@ export function Sidebar({
               onClick={() => runCollectionAction(onDeleteCollection)}
             />
           </div>,
-          document.body
+          portalHost()
         )}
       {folderColorMenu &&
         createPortal(
@@ -496,7 +497,7 @@ export function Sidebar({
               })}
             </div>
           </div>,
-          document.body
+          portalHost()
         )}
     </aside>
   )

@@ -343,6 +343,129 @@ function configureCurlDemo() {
   observer.observe(demo)
 }
 
+/** Plays a scripted timeline once the element is on screen; reduced motion jumps to the end. */
+function playWhenVisible(element, threshold, play, finish) {
+  if (prefersReducedMotion() || !('IntersectionObserver' in window)) {
+    finish()
+    return
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        observer.disconnect()
+        play()
+      }
+    },
+    { threshold }
+  )
+  observer.observe(element)
+}
+
+function configureAiDemo() {
+  const demo = $('[data-ai-demo]')
+  if (!demo) return
+  const steps = $$('[data-ai-step]', demo)
+  const typing = $('[data-ai-typing]', demo)
+  const proposal = $('[data-ai-proposal]', demo)
+  const title = $('[data-ai-proposal-title]', demo)
+  const apply = $('[data-ai-apply]', demo)
+  const applyLabel = $('[data-ai-apply-label]', demo)
+  const swap = $('[data-ai-swap]', demo)
+  const headerCount = $('[data-ai-header-count]', demo)
+  const replay = $('[data-ai-replay]', demo)
+  let timers = []
+
+  const later = (ms, fn) => timers.push(window.setTimeout(fn, ms))
+  const show = (element) => element?.classList.add('is-shown')
+
+  const setApplied = (applied) => {
+    demo.classList.toggle('is-applied', applied)
+    proposal?.classList.toggle('is-applied', applied)
+    if (title) title.textContent = applied ? 'Alterações aplicadas' : 'Alterações sugeridas'
+    if (applyLabel) applyLabel.textContent = applied ? '↺ Desfazer' : '✓ Aplicar na request'
+    if (headerCount) headerCount.textContent = applied ? '3' : '2'
+  }
+
+  const reset = () => {
+    timers.forEach((timer) => window.clearTimeout(timer))
+    timers = []
+    steps.forEach((step) => step.classList.remove('is-shown'))
+    typing?.classList.remove('is-shown')
+    apply?.classList.remove('is-pressed')
+    swap?.classList.remove('is-flash')
+    setApplied(false)
+    if (replay) replay.hidden = true
+  }
+
+  const finish = () => {
+    reset()
+    steps.forEach(show)
+    setApplied(true)
+    if (replay) replay.hidden = false
+  }
+
+  const play = () => {
+    reset()
+    const [user, reply, , meta] = steps
+    later(250, () => show(user))
+    later(850, () => show(typing))
+    later(2150, () => {
+      typing?.classList.remove('is-shown')
+      show(reply)
+    })
+    later(2750, () => show(proposal))
+    // The press reads as a real click: down, then the request updates on release.
+    later(3700, () => apply?.classList.add('is-pressed'))
+    later(3840, () => {
+      apply?.classList.remove('is-pressed')
+      setApplied(true)
+      swap?.classList.add('is-flash')
+    })
+    later(4400, () => show(meta))
+    later(4700, () => swap?.classList.remove('is-flash'))
+    later(4900, () => {
+      if (replay) replay.hidden = false
+    })
+  }
+
+  replay?.addEventListener('click', () => (prefersReducedMotion() ? finish() : play()))
+  playWhenVisible(demo, 0.45, play, finish)
+}
+
+function configureAiRoute() {
+  const route = $('[data-ai-route]')
+  if (!route) return
+  const lanes = $$('[data-ai-lane]', route)
+  let timers = []
+
+  const settle = (lane) => {
+    const state = $('.lane-state', lane)
+    lane.classList.remove('is-running')
+    lane.dataset.tone = state?.dataset.tone || 'idle'
+    if (state) state.textContent = state.dataset.stateFinal || ''
+  }
+  const run = (lane) => {
+    lane.classList.add('is-running')
+    const state = $('.lane-state', lane)
+    if (state) state.textContent = 'tentando…'
+  }
+
+  const finish = () => lanes.forEach(settle)
+  const play = () => {
+    timers.forEach((timer) => window.clearTimeout(timer))
+    timers = []
+    const [first, second, third] = lanes
+    if (!first || !second || !third) return finish()
+    timers.push(window.setTimeout(() => run(first), 200))
+    timers.push(window.setTimeout(() => settle(first), 1200))
+    timers.push(window.setTimeout(() => run(second), 1450))
+    timers.push(window.setTimeout(() => settle(second), 2450))
+    timers.push(window.setTimeout(() => settle(third), 2650))
+  }
+
+  playWhenVisible(route, 0.6, play, finish)
+}
+
 function configureVizTabs() {
   const tabs = $$('[data-viz-tabs] [data-viz]')
   if (!tabs.length) return
@@ -394,6 +517,8 @@ configureMenu()
 configureHeader()
 configureReveal()
 configureCurlDemo()
+configureAiDemo()
+configureAiRoute()
 configureVizTabs()
 configureColorVision()
 highlightRecommendedPlatform()

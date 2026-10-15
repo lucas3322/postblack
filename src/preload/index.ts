@@ -21,7 +21,13 @@ const channels = {
   updateCheck: 'postblack:update:check',
   updateDownload: 'postblack:update:download',
   updateOpenRelease: 'postblack:update:open-release',
-  updateProgress: 'postblack:update:progress'
+  updateProgress: 'postblack:update:progress',
+  aiState: 'postblack:ai:state',
+  aiSaveSettings: 'postblack:ai:save-settings',
+  aiSetKey: 'postblack:ai:set-key',
+  aiListModels: 'postblack:ai:list-models',
+  aiTest: 'postblack:ai:test',
+  aiChat: 'postblack:ai:chat'
 } as const
 
 const api: PostblackApi = {
@@ -40,6 +46,14 @@ const api: PostblackApi = {
   },
   app: {
     info: () => ipcRenderer.invoke(channels.appInfo)
+  },
+  ai: {
+    state: () => ipcRenderer.invoke(channels.aiState),
+    saveSettings: (settings) => ipcRenderer.invoke(channels.aiSaveSettings, settings),
+    setKey: (provider, key) => ipcRenderer.invoke(channels.aiSetKey, provider, key),
+    listModels: (provider) => ipcRenderer.invoke(channels.aiListModels, provider),
+    test: (provider) => ipcRenderer.invoke(channels.aiTest, provider),
+    chat: (input) => ipcRenderer.invoke(channels.aiChat, input)
   },
   updates: {
     check: () => ipcRenderer.invoke(channels.updateCheck),

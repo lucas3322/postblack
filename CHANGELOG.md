@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.17.1 — 2026-10-13
+
+- fix: melhorando cores (5a06536)
+
+## 0.17.0 — 2026-10-13
+
+- feat: mantendo abas abertas mesmo após fechar (d74be47)
+- feat: resolvendo bug de import do swagger (8d51c0e)
+
 ## 0.16.0 — 2026-10-09
 
 - feat: melhorando visualização e layout (917a598)

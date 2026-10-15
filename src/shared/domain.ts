@@ -1,3 +1,13 @@
+import type {
+  AiChatInput,
+  AiChatResult,
+  AiModelOption,
+  AiProviderId,
+  AiPublicState,
+  AiSettings,
+  AiTestResult
+} from './ai/types'
+
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
 
 export type HttpMethod = (typeof HTTP_METHODS)[number]
@@ -213,6 +223,14 @@ export interface PostblackApi {
   }
   app: {
     info: () => Promise<AppInfo>
+  }
+  ai: {
+    state: () => Promise<AiPublicState>
+    saveSettings: (settings: AiSettings) => Promise<AiPublicState>
+    setKey: (provider: AiProviderId, key: string | null) => Promise<AiPublicState>
+    listModels: (provider: AiProviderId) => Promise<AiModelOption[]>
+    test: (provider: AiProviderId) => Promise<AiTestResult>
+    chat: (input: AiChatInput) => Promise<AiChatResult>
   }
   updates: {
     check: () => Promise<UpdateInfo>

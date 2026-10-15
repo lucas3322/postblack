@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { createKeyValue, createRequest } from '../../../shared/domain'
-import { importOpenApi, type ImportedOpenApi } from '../../../shared/openapi'
+import { importOpenApi, resolveSpecUrl, type ImportedOpenApi } from '../../../shared/openapi'
 import { Modal } from './Modal'
 
 export type ImportTab = 'curl' | 'openapi' | 'workspace'
@@ -151,7 +151,7 @@ function OpenApiImport({
     setError(null)
     try {
       const request = createRequest('OpenAPI spec')
-      request.url = url.trim()
+      request.url = resolveSpecUrl(url)
       request.headers = [createKeyValue('Accept', 'application/json')]
       const response = await window.postblack.executeRequest({ request, variables })
       if (response.error) throw new Error(response.error)
