@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 — 2026-11-12
+
+- chore(release): v1.1.0 (49d3797)
+- feat: add request scripts and fix Windows editor interactions (fda87ac)
+
 ## 1.1.0 — 2026-11-12
 
 - feat: add request scripts and fix Windows editor interactions (fda87ac)
