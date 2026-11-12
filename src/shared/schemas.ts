@@ -33,6 +33,17 @@ const authSchema = z.object({
 })
 
 const httpMethodSchema = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
+const variableUpdateSchema = z.object({
+  scope: z.enum(['global', 'workspace', 'environment']),
+  key: z.string(),
+  value: z.string().nullable()
+})
+const scriptResultSchema = z.object({
+  phase: z.enum(['preRequest', 'postResponse']),
+  tests: z.array(z.object({ name: z.string(), passed: z.boolean(), error: z.string().optional() })),
+  logs: z.array(z.string()),
+  error: z.string().optional()
+})
 
 const responseSchema = z.object({
   id: z.string(),
@@ -48,6 +59,8 @@ const responseSchema = z.object({
   body: z.string(),
   contentType: z.string(),
   error: z.string().optional(),
+  scriptResults: z.array(scriptResultSchema).optional(),
+  variableUpdates: z.array(variableUpdateSchema).optional(),
   createdAt: z.string()
 })
 
@@ -75,6 +88,7 @@ export const requestSchema = z.object({
     graphql: z.object({ query: z.string(), variables: z.string() }).default({ query: '', variables: '' })
   }),
   auth: authSchema,
+  scripts: z.object({ preRequest: z.string(), postResponse: z.string() }).optional(),
   examples: z.array(requestExampleSchema).default([]),
   createdAt: z.string(),
   updatedAt: z.string()
@@ -120,5 +134,13 @@ export const appStateSchema = z.object({
 
 export const executeRequestSchema = z.object({
   request: requestSchema,
-  variables: z.record(z.string(), z.string())
+  variables: z.record(z.string(), z.string()),
+  variableScopes: z
+    .object({
+      global: z.record(z.string(), z.string()),
+      workspace: z.record(z.string(), z.string()),
+      environment: z.record(z.string(), z.string())
+    })
+    .optional(),
+  hasEnvironment: z.boolean().optional()
 })

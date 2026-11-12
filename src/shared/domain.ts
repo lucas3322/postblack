@@ -69,6 +69,7 @@ export interface ApiRequest {
   headers: KeyValue[]
   body: RequestBody
   auth: RequestAuth
+  scripts?: { preRequest: string; postResponse: string }
   examples: RequestExample[]
   createdAt: string
   updatedAt: string
@@ -145,6 +146,8 @@ export interface ResponseSnapshot {
   body: string
   contentType: string
   error?: string
+  scriptResults?: ScriptResult[]
+  variableUpdates?: VariableUpdate[]
   createdAt: string
 }
 
@@ -159,6 +162,25 @@ export interface AppState {
 export interface ExecuteRequestInput {
   request: ApiRequest
   variables: Record<string, string>
+  variableScopes?: {
+    global: Record<string, string>
+    workspace: Record<string, string>
+    environment: Record<string, string>
+  }
+  hasEnvironment?: boolean
+}
+
+export interface ScriptResult {
+  phase: 'preRequest' | 'postResponse'
+  tests: { name: string; passed: boolean; error?: string }[]
+  logs: string[]
+  error?: string
+}
+
+export interface VariableUpdate {
+  scope: 'global' | 'workspace' | 'environment'
+  key: string
+  value: string | null
 }
 
 export interface ImportedCurl {

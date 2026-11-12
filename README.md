@@ -58,6 +58,42 @@ npm run build
 npm run landing:check
 ```
 
+## Scripts de requisição
+
+A aba **Scripts** oferece **Pre-request** (antes do envio) e **Post-response** (depois da
+resposta), seguindo o fluxo de [scripts do Postman](https://learning.postman.com/docs/tests-and-scripts/write-scripts/intro-to-scripts/).
+Os scripts são salvos junto com a requisição pelo botão **Save**.
+
+```javascript
+// Pre-request: variável temporária para {{timestamp}} na URL, headers ou body.
+pm.variables.set('timestamp', Date.now())
+
+// Post-response: guardar um token no ambiente ativo e verificar o status.
+pm.environment.set('access_token', pm.response.json().token)
+pm.test('Status 200', () => {
+  pm.response.to.have.status(200)
+})
+```
+
+Esta implementação inicial inclui `get`, `set`, `unset`, `has` e `toObject` nos escopos
+`pm.environment`, `pm.globals` e `pm.collectionVariables` (variáveis do workspace).
+`pm.variables` oferece `get`, `set`, `has` e `replaceIn`; seus valores são temporários e
+duram até o fim da execução da requisição. Os valores de ambiente persistem entre requisições,
+inclusive durante a execução de uma coleção. É necessário selecionar um ambiente para escrever nele.
+
+`pm.response` oferece `code`, `status`, `responseTime`, `json()`, `text()`, `headers.get()` e
+`to.have.status()`. Os resultados de `pm.test`, os erros e os registros de `console.log/info/warn/error`
+aparecem na aba **Scripts** da resposta. `pm.expect` inclui asserções básicas como `equal`, `eql`,
+`include`, `property`, `a`, `above`, `below`, `not`, `true`, `false`, `null`, `undefined` e `ok`.
+
+Cada fase tem limite de dois segundos. Callbacks de testes devem ser síncronos. Um erro de
+Pre-request impede o envio; um erro de Post-response mantém a resposta recebida disponível.
+O runtime completo do Postman, bibliotecas externas, `pm.sendRequest` e timers não são implementados.
+
+Os testes de interação rodam com `npm run test:e2e` e usam o Chrome instalado. Eles verificam
+cliques, seleção, rolagem, edição de variáveis pelo popover e persistência dos scripts em uma
+interface com a API do Electron simulada, sem alterar os dados reais do aplicativo.
+
 ## Arquitetura
 
 - `src/main`: processo confiável do Electron, persistência e execução HTTP;

@@ -29,7 +29,7 @@ import { MethodSelect } from './MethodSelect'
 import { UrlEditor } from './UrlEditor'
 import { VariableValueInput } from './VariableValueInput'
 
-type RequestTab = 'params' | 'headers' | 'body' | 'auth'
+type RequestTab = 'params' | 'headers' | 'body' | 'auth' | 'scripts'
 
 interface RequestEditorProps {
   request: ApiRequest
@@ -144,8 +144,10 @@ export function RequestEditor({
         />
         <Tab label="Body" active={tab === 'body'} onClick={() => setTab('body')} />
         <Tab label="Auth" active={tab === 'auth'} onClick={() => setTab('auth')} />
+        <Tab label="Scripts" active={tab === 'scripts'} onClick={() => setTab('scripts')} />
       </nav>
       <div className="request-config">
+        {tab === 'scripts' && <ScriptEditor request={request} onChange={(scripts) => patch({ scripts })} />}
         {tab === 'params' && (
           <KeyValueEditor
             rows={request.params}
@@ -188,6 +190,57 @@ export function RequestEditor({
         )}
       </div>
     </section>
+  )
+}
+
+function ScriptEditor({
+  request,
+  onChange
+}: {
+  request: ApiRequest
+  onChange: (scripts: NonNullable<ApiRequest['scripts']>) => void
+}): React.JSX.Element {
+  const [phase, setPhase] = useState<'preRequest' | 'postResponse'>('preRequest')
+  const scripts = request.scripts ?? { preRequest: '', postResponse: '' }
+  return (
+    <div className="script-editor">
+      <nav className="tabs compact" aria-label="Script phase">
+        <button
+          className={phase === 'preRequest' ? 'tab active' : 'tab'}
+          onClick={() => setPhase('preRequest')}
+        >
+          Pre-request
+        </button>
+        <button
+          className={phase === 'postResponse' ? 'tab active' : 'tab'}
+          onClick={() => setPhase('postResponse')}
+        >
+          Post-response
+        </button>
+      </nav>
+      <p>
+        {phase === 'preRequest'
+          ? 'Runs before sending. Set variables for the URL, headers and body.'
+          : 'Runs after receiving the response. Save tokens and check API results.'}
+      </p>
+      <textarea
+        className="code"
+        aria-label={phase === 'preRequest' ? 'Pre-request script' : 'Post-response script'}
+        value={scripts[phase]}
+        spellCheck={false}
+        onChange={(event) => onChange({ ...scripts, [phase]: event.target.value })}
+        placeholder={
+          phase === 'preRequest'
+            ? 'pm.variables.set("timestamp", Date.now());'
+            : 'pm.environment.set("access_token", pm.response.json().token);\npm.test("Status is 200", () => {\n  pm.response.to.have.status(200);\n});'
+        }
+      />
+      <p>
+        Available: pm.variables, pm.environment, pm.globals, pm.collectionVariables (workspace),
+        pm.response.json(), pm.test(), pm.expect(), console.log(). Tests use synchronous callbacks. Execution
+        limit: 2 seconds.
+      </p>
+    </div>
   )
 }
 

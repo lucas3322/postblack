@@ -81,11 +81,6 @@ export function UrlEditor({
                 label={segment.value}
                 detail={variableDetails[segment.name]}
                 key={index}
-                onActivate={() => {
-                  const caret = segments.slice(0, index + 1).reduce((sum, part) => sum + part.value.length, 0)
-                  inputRef.current?.focus()
-                  inputRef.current?.setSelectionRange(caret, caret)
-                }}
               />
             ) : (
               <span key={index}>{segment.value}</span>

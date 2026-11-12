@@ -1,4 +1,4 @@
-import type { KeyValue, Workspace } from './domain'
+import { createKeyValue, type AppState, type KeyValue, type VariableUpdate, type Workspace } from './domain'
 
 const VARIABLE_PATTERN = /\{\{\s*([^{}\s]+)\s*\}\}/g
 
@@ -9,6 +9,7 @@ export interface VariableDetail {
   value: string
   secret: boolean
   scope: 'global' | 'workspace' | 'environment'
+  onSave?: (value: string) => Promise<void>
 }
 
 export function splitVariableReferences(value: string): VariableSegment[] {
@@ -69,4 +70,42 @@ export function findUnresolvedVariables(value: string): string[] {
   return [...value.matchAll(VARIABLE_PATTERN)]
     .map((match) => match[1])
     .filter((key): key is string => Boolean(key))
+}
+
+export function applyVariableUpdates(
+  state: AppState,
+  workspaceId: string,
+  environmentId: string | null,
+  updates: VariableUpdate[]
+): AppState {
+  const updateRows = (rows: KeyValue[], update: VariableUpdate): KeyValue[] => {
+    if (update.value === null) return rows.filter((row) => row.key.trim() !== update.key)
+    if (rows.some((row) => row.key.trim() === update.key))
+      return rows.map((row) =>
+        row.key.trim() === update.key ? { ...row, value: update.value!, enabled: true } : row
+      )
+    return [...rows, createKeyValue(update.key, update.value)]
+  }
+  return updates.reduce(
+    (current, update) => ({
+      ...current,
+      globalVariables:
+        update.scope === 'global' ? updateRows(current.globalVariables, update) : current.globalVariables,
+      workspaces: current.workspaces.map((workspace) =>
+        workspace.id !== workspaceId
+          ? workspace
+          : {
+              ...workspace,
+              variables:
+                update.scope === 'workspace' ? updateRows(workspace.variables, update) : workspace.variables,
+              environments: workspace.environments.map((environment) =>
+                update.scope === 'environment' && environment.id === environmentId
+                  ? { ...environment, variables: updateRows(environment.variables, update) }
+                  : environment
+              )
+            }
+      )
+    }),
+    state
+  )
 }

@@ -76,6 +76,40 @@ describe('HTTP executor', () => {
     )
   })
 
+  it('runs scripts around a real HTTP request and keeps response data when a test fails', async () => {
+    const request = createRequest('Scripted request')
+    request.method = 'POST'
+    request.url = `${baseUrl}/{{resource}}`
+    request.body = { mode: 'json', content: '{"name":"{{name}}"}' }
+    request.scripts = {
+      preRequest: `pm.variables.set('resource', 'scripted'); pm.environment.set('name', 'Windows');`,
+      postResponse: `pm.environment.set('last_url', pm.response.json().url); pm.test('status', () => { pm.response.to.have.status(200); pm.expect(pm.variables.get('resource')).to.equal('scripted'); }); pm.test('failure', () => pm.expect(pm.response.code).to.equal(201));`
+    }
+    const result = await executeHttpRequest({
+      request,
+      variables: {},
+      hasEnvironment: true,
+      variableScopes: { global: {}, workspace: {}, environment: {} }
+    })
+    expect(result.status).toBe(200)
+    expect(JSON.parse(result.body)).toMatchObject({ url: '/scripted', body: '{"name":"Windows"}' })
+    expect(result.scriptResults?.[1].tests.map((test) => test.passed)).toEqual([true, false])
+    expect(result.variableUpdates).toContainEqual({
+      scope: 'environment',
+      key: 'last_url',
+      value: '/scripted'
+    })
+  })
+
+  it('stops sending when a pre-request script fails', async () => {
+    const request = createRequest()
+    request.url = `${baseUrl}/never-sent`
+    request.scripts = { preRequest: 'throw new Error("invalid setup")', postResponse: '' }
+    await expect(executeHttpRequest({ request, variables: {} })).rejects.toThrow(
+      'Pre-request script: invalid setup'
+    )
+  })
+
   it('sends x-www-form-urlencoded rows with resolved variables', async () => {
     const request = createRequest('Form request')
     request.method = 'POST'
