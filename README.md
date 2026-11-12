@@ -12,6 +12,11 @@ O botão **Import** (ou `⌘K` → "Import…") reúne três origens:
   Gera uma coleção com uma pasta por tag, parâmetros, bodies de exemplo gerados a partir do schema,
   autenticação a partir de `securitySchemes` e um ambiente novo com `{{base_url}}`, os placeholders
   de auth e os path params. YAML ainda não é suportado; o parser fica em `src/shared/openapi.ts`;
+- **Postman (Collection v2.0/v2.1)**: pastas (aninhadas viram `Pai / Filha`), requests, params,
+  headers, bodies (raw, form-data, urlencoded, GraphQL, binário), auth herdada da coleção/pasta e
+  exemplos salvos. Solte junto o `.postman_environment.json` para trazer os valores das variáveis;
+  variáveis usadas e não definidas são criadas vazias e listadas. Scripts de pre-request/test não são
+  importados. O parser fica em `src/shared/postman.ts`;
 - **Workspace do Postblack**: arquivos `.postblack.json` exportados pelo app.
 
 ## Paleta de comandos

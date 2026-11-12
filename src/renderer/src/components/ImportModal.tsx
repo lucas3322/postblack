@@ -6,15 +6,26 @@ import {
   Globe,
   Layers3,
   Loader2,
+  Send,
   Terminal,
-  UploadCloud
+  UploadCloud,
+  Variable,
+  X
 } from 'lucide-react'
 import { useState } from 'react'
 import { createKeyValue, createRequest } from '../../../shared/domain'
 import { importOpenApi, resolveSpecUrl, type ImportedOpenApi } from '../../../shared/openapi'
+import {
+  importPostmanCollection,
+  importPostmanEnvironment,
+  isPostmanCollection,
+  isPostmanEnvironment,
+  type ImportedPostman,
+  type ImportedPostmanEnvironment
+} from '../../../shared/postman'
 import { Modal } from './Modal'
 
-export type ImportTab = 'curl' | 'openapi' | 'workspace'
+export type ImportTab = 'curl' | 'openapi' | 'postman' | 'workspace'
 type OpenApiSource = 'file' | 'url' | 'paste'
 
 interface ImportModalProps {
@@ -24,6 +35,7 @@ interface ImportModalProps {
   onCurlInput: (value: string) => void
   onImportCurl: () => void
   onImportOpenApi: (imported: ImportedOpenApi) => void
+  onImportPostman: (imported: ImportedPostman, environment: ImportedPostmanEnvironment | null) => void
   onImportWorkspace: () => void
   onClose: () => void
 }
@@ -31,6 +43,7 @@ interface ImportModalProps {
 const TABS: Array<{ id: ImportTab; label: string; icon: React.JSX.Element }> = [
   { id: 'curl', label: 'cURL', icon: <Terminal size={14} /> },
   { id: 'openapi', label: 'OpenAPI / Swagger', icon: <Braces size={14} /> },
+  { id: 'postman', label: 'Postman', icon: <Send size={14} /> },
   { id: 'workspace', label: 'Postblack workspace', icon: <Layers3 size={14} /> }
 ]
 
@@ -41,10 +54,12 @@ export function ImportModal({
   onCurlInput,
   onImportCurl,
   onImportOpenApi,
+  onImportPostman,
   onImportWorkspace,
   onClose
 }: ImportModalProps): React.JSX.Element {
   const [tab, setTab] = useState<ImportTab>(initialTab)
+  const [handoff, setHandoff] = useState<DroppedFile | null>(null)
 
   return (
     <Modal title="Import" onClose={onClose} wide>
@@ -90,8 +105,18 @@ export function ImportModal({
       )}
 
       {tab === 'openapi' && (
-        <OpenApiImport variables={variables} onImport={onImportOpenApi} onClose={onClose} />
+        <OpenApiImport
+          variables={variables}
+          onImport={onImportOpenApi}
+          onPostmanDetected={(file) => {
+            setHandoff(file)
+            setTab('postman')
+          }}
+          onClose={onClose}
+        />
       )}
+
+      {tab === 'postman' && <PostmanImport initial={handoff} onImport={onImportPostman} onClose={onClose} />}
 
       {tab === 'workspace' && (
         <div className="import-pane">
@@ -106,13 +131,20 @@ export function ImportModal({
   )
 }
 
+interface DroppedFile {
+  text: string
+  name: string | null
+}
+
 function OpenApiImport({
   variables,
   onImport,
+  onPostmanDetected,
   onClose
 }: {
   variables: Record<string, string>
   onImport: (imported: ImportedOpenApi) => void
+  onPostmanDetected: (file: DroppedFile) => void
   onClose: () => void
 }): React.JSX.Element {
   const [source, setSource] = useState<OpenApiSource>('file')
@@ -125,6 +157,10 @@ function OpenApiImport({
   const [dragging, setDragging] = useState(false)
 
   const parse = (text: string, origin: string | null): void => {
+    if (isPostmanCollection(text) || isPostmanEnvironment(text)) {
+      onPostmanDetected({ text, name: origin })
+      return
+    }
     try {
       setPreview(importOpenApi(text))
       setFileName(origin)
@@ -330,6 +366,195 @@ function OpenApiImport({
           onClick={() => preview && onImport(preview)}
         >
           Import {preview ? `${preview.operationCount} requests` : 'collection'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PostmanImport({
+  initial,
+  onImport,
+  onClose
+}: {
+  initial: DroppedFile | null
+  onImport: (imported: ImportedPostman, environment: ImportedPostmanEnvironment | null) => void
+  onClose: () => void
+}): React.JSX.Element {
+  const [collection, setCollection] = useState<{ name: string | null; data: ImportedPostman } | null>(null)
+  const [environment, setEnvironment] = useState<{
+    name: string | null
+    data: ImportedPostmanEnvironment
+  } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const [handled, setHandled] = useState<DroppedFile | null>(null)
+
+  const accept = (file: DroppedFile): void => {
+    try {
+      if (isPostmanEnvironment(file.text)) {
+        setEnvironment({ name: file.name, data: importPostmanEnvironment(file.text) })
+      } else {
+        setCollection({ name: file.name, data: importPostmanCollection(file.text) })
+      }
+      setError(null)
+    } catch (parseError) {
+      setError(parseError instanceof Error ? parseError.message : 'Não foi possível ler o arquivo.')
+    }
+  }
+
+  // A file dropped on the OpenAPI tab arrives here once.
+  if (initial && handled !== initial) {
+    setHandled(initial)
+    accept(initial)
+  }
+
+  const chooseFile = async (): Promise<void> => {
+    try {
+      const selected = await window.postblack.files.importJson()
+      if (!selected.canceled) accept({ text: selected.contents ?? '', name: selected.name ?? null })
+    } catch (fileError) {
+      setError(fileError instanceof Error ? fileError.message : 'Não foi possível abrir o arquivo.')
+    }
+  }
+
+  const readDropped = async (files: FileList): Promise<void> => {
+    for (const file of Array.from(files).slice(0, 2)) {
+      if (file.size > 50_000_000) {
+        setError(`${file.name} excede o limite de 50 MB.`)
+        continue
+      }
+      accept({ text: await file.text(), name: file.name })
+    }
+  }
+
+  const preview = collection?.data
+  const filled = environment
+    ? new Set(environment.data.variables.filter((row) => row.value).map((row) => row.key))
+    : new Set<string>()
+  const missing = preview?.variables.filter((row) => !row.value && !filled.has(row.key)) ?? []
+
+  return (
+    <div className="import-pane">
+      <p className="muted">
+        Import a Postman Collection (v2.0 or v2.1). Folders, requests, params, headers, bodies, inherited auth
+        and saved examples come along. Drop the environment file too to bring the variable values.
+      </p>
+
+      <button
+        className={`import-dropzone${dragging ? ' dragging' : ''}`}
+        onClick={() => void chooseFile()}
+        onDragOver={(event) => {
+          event.preventDefault()
+          setDragging(true)
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(event) => {
+          event.preventDefault()
+          setDragging(false)
+          void readDropped(event.dataTransfer.files)
+        }}
+      >
+        <UploadCloud size={26} />
+        <strong>
+          {collection
+            ? 'Drop the environment (optional) or another collection'
+            : 'Drop the .postman_collection.json here'}
+        </strong>
+        <span>Collection and environment can be dropped together · up to 50 MB</span>
+      </button>
+
+      <div className="postman-files">
+        {collection && (
+          <span className="postman-file">
+            <FileJson size={13} />
+            {collection.name ?? collection.data.title}
+            <button aria-label="Remove collection" onClick={() => setCollection(null)}>
+              <X size={12} />
+            </button>
+          </span>
+        )}
+        {environment && (
+          <span className="postman-file env">
+            <Variable size={13} />
+            {environment.name ?? environment.data.name} · {environment.data.variables.length} vars
+            <button aria-label="Remove environment" onClick={() => setEnvironment(null)}>
+              <X size={12} />
+            </button>
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div className="import-error" role="alert">
+          <AlertTriangle size={15} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {preview && (
+        <div className="import-preview">
+          <div className="import-preview-head">
+            <span className="import-preview-badge postman-badge">Postman {preview.schemaVersion}</span>
+            <strong>{preview.title}</strong>
+          </div>
+          <dl className="import-stats">
+            <div>
+              <dt>Requests</dt>
+              <dd>{preview.requestCount}</dd>
+            </div>
+            <div>
+              <dt>Folders</dt>
+              <dd>{preview.folderCount}</dd>
+            </div>
+            <div>
+              <dt>Variables</dt>
+              <dd>
+                {
+                  new Set(
+                    [...preview.variables, ...(environment?.data.variables ?? [])].map((row) => row.key)
+                  ).size
+                }
+              </dd>
+            </div>
+          </dl>
+          {missing.length > 0 && (
+            <p className="import-base-url">
+              No value yet:{' '}
+              {missing
+                .slice(0, 6)
+                .map((row) => `{{${row.key}}}`)
+                .join(', ')}
+              {missing.length > 6 ? ` +${missing.length - 6}` : ''}
+              {environment ? '' : ' — drop the Postman environment to fill them in.'}
+            </p>
+          )}
+          {preview.warnings.length > 0 && (
+            <details className="import-warnings">
+              <summary>
+                <AlertTriangle size={13} /> {preview.warnings.length} warning
+                {preview.warnings.length === 1 ? '' : 's'}
+              </summary>
+              <ul>
+                {preview.warnings.slice(0, 50).map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+
+      <div className="modal-actions">
+        <button className="button secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          className="button primary"
+          disabled={!preview || preview.requestCount === 0}
+          onClick={() => preview && onImport(preview, environment?.data ?? null)}
+        >
+          Import {preview ? `${preview.requestCount} requests` : 'collection'}
         </button>
       </div>
     </div>

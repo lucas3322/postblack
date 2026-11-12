@@ -5,11 +5,9 @@
 - chore(release): v1.1.0 (49d3797)
 - feat: add request scripts and fix Windows editor interactions (fda87ac)
 
-## 1.1.0 — 2026-11-12
+## 1.1.0 — 2026-10-15
 
-- feat: add request scripts and fix Windows editor interactions (fda87ac)
-
-# Changelog
+- feat: importação de coleções e environments do Postman (1249409)
 
 ## 1.0.3 — 2026-10-15
 
