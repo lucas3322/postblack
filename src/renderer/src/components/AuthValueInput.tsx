@@ -39,11 +39,6 @@ export function AuthValueInput({
                 name={segment.name}
                 label={segment.value}
                 detail={variableDetails[segment.name]}
-                onActivate={() => {
-                  const caret = segments.slice(0, index + 1).reduce((sum, part) => sum + part.value.length, 0)
-                  inputRef.current?.focus()
-                  inputRef.current?.setSelectionRange(caret, caret)
-                }}
               />
             ) : (
               segment.value

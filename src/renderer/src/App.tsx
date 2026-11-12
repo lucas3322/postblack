@@ -12,6 +12,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Save,
   Send,
   Settings2,
   Sparkles,
@@ -37,7 +38,13 @@ import {
   type ResponseSnapshot,
   type Workspace
 } from '../../shared/domain'
-import { resolveVariables, scopedVariableDetails, scopedVariables } from '../../shared/variables'
+import {
+  applyVariableUpdates,
+  resolveVariables,
+  rowsToVariables,
+  scopedVariableDetails,
+  scopedVariables
+} from '../../shared/variables'
 import { KeyValueEditor } from './components/KeyValueEditor'
 import { BrandLogo } from './components/BrandLogo'
 import { AiAssistantPanel, type AiConversationMessage, type AiPrompt } from './components/AiAssistantPanel'
@@ -296,10 +303,24 @@ export function App(): React.JSX.Element {
     () => (workspace ? scopedVariables(state?.globalVariables ?? [], workspace) : {}),
     [state?.globalVariables, workspace]
   )
-  const variableDetails = useMemo(
-    () => (workspace ? scopedVariableDetails(state?.globalVariables ?? [], workspace) : {}),
-    [state?.globalVariables, workspace]
-  )
+  const variableDetails = useMemo(() => {
+    if (!workspace || !state) return {}
+    const details = scopedVariableDetails(state.globalVariables, workspace)
+    for (const [name, detail] of Object.entries(details)) {
+      detail.onSave = async (value) => {
+        const updates = [{ scope: detail.scope, key: name, value }]
+        const next = applyVariableUpdates(state, workspace.id, workspace.activeEnvironmentId, updates)
+        await window.postblack.saveState(next)
+        setState((current) =>
+          current
+            ? applyVariableUpdates(current, workspace.id, workspace.activeEnvironmentId, updates)
+            : current
+        )
+        showNotice(`Variable “${name}” saved.`)
+      }
+    }
+    return details
+  }, [state, workspace])
   const dirtyRequestIds = new Set([...Object.keys(requestDrafts), ...Object.keys(scratchRequests)])
   const workspaceTabs = openTabs.filter(
     (tab) =>
@@ -430,14 +451,28 @@ export function App(): React.JSX.Element {
   }
 
   const sendRequest = async (): Promise<void> => {
-    if (!selectedRequest || !state) return
+    if (!selectedRequest || !state || !workspace) return
     setSending(true)
     setResponse(null)
     try {
-      const result = await window.postblack.executeRequest({ request: selectedRequest, variables })
+      const result = await window.postblack.executeRequest({
+        request: selectedRequest,
+        variables,
+        ...scriptVariableContext(state, workspace)
+      })
       setResponse(result)
       setState((current) =>
-        current ? { ...current, history: [result, ...current.history].slice(0, 100) } : current
+        current
+          ? {
+              ...applyVariableUpdates(
+                current,
+                workspace.id,
+                workspace.activeEnvironmentId,
+                result.variableUpdates ?? []
+              ),
+              history: [result, ...current.history].slice(0, 100)
+            }
+          : current
       )
     } catch (error) {
       showNotice(error instanceof Error ? error.message : 'Could not send the request.')
@@ -728,7 +763,7 @@ export function App(): React.JSX.Element {
   }
 
   const runCollection = async (collection: RequestCollection): Promise<void> => {
-    if (!state) return
+    if (!state || !workspace) return
     const requests = requestsInCollection(collection)
     if (!requests.length) {
       showNotice('Add at least one request before running this collection.')
@@ -738,9 +773,22 @@ export function App(): React.JSX.Element {
     setSending(true)
     try {
       const results: ResponseSnapshot[] = []
+      let runState = state
       for (const request of requests) {
         try {
-          results.push(await window.postblack.executeRequest({ request, variables }))
+          const runWorkspace = runState.workspaces.find((item) => item.id === workspace.id)!
+          const result = await window.postblack.executeRequest({
+            request,
+            variables: scopedVariables(runState.globalVariables, runWorkspace),
+            ...scriptVariableContext(runState, runWorkspace)
+          })
+          results.push(result)
+          runState = applyVariableUpdates(
+            runState,
+            workspace.id,
+            workspace.activeEnvironmentId,
+            result.variableUpdates ?? []
+          )
         } catch (error) {
           results.push({
             id: createId('response'),
@@ -763,7 +811,15 @@ export function App(): React.JSX.Element {
       const lastResult = results.at(-1) ?? null
       setState((current) =>
         current
-          ? { ...current, history: [...results].reverse().concat(current.history).slice(0, 100) }
+          ? {
+              ...applyVariableUpdates(
+                current,
+                workspace.id,
+                workspace.activeEnvironmentId,
+                results.flatMap((result) => result.variableUpdates ?? [])
+              ),
+              history: [...results].reverse().concat(current.history).slice(0, 100)
+            }
           : current
       )
       if (lastResult) {
@@ -1978,6 +2034,10 @@ export function App(): React.JSX.Element {
             setState((current) => (current ? { ...current, globalVariables } : current))
           }
           onWorkspaceChange={updateWorkspace}
+          onSave={async () => {
+            await window.postblack.saveState(state)
+            setSaveState('saved')
+          }}
           onClose={() => setModal(null)}
         />
       )}
@@ -2100,14 +2160,20 @@ function EnvironmentModal({
   workspace,
   onGlobalVariablesChange,
   onWorkspaceChange,
+  onSave,
   onClose
 }: {
   globalVariables: AppState['globalVariables']
   workspace: Workspace
   onGlobalVariablesChange: (variables: AppState['globalVariables']) => void
   onWorkspaceChange: (updater: (workspace: Workspace) => Workspace) => void
+  onSave: () => Promise<void>
   onClose: () => void
 }): React.JSX.Element {
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  useEffect(() => setSaved(false), [globalVariables, workspace])
   const environment = workspace.environments.find((item) => item.id === workspace.activeEnvironmentId)
   const addEnvironment = (): void => {
     const next = {
@@ -2190,6 +2256,27 @@ function EnvironmentModal({
           />
         </div>
       )}
+      <div className="modal-actions variable-save-actions">
+        <span role="status">
+          {saveError ||
+            (saved ? 'Variables saved locally.' : 'Changes are saved automatically. You can also save now.')}
+        </span>
+        <button
+          type="button"
+          className="button primary"
+          disabled={saving}
+          onClick={() => {
+            setSaving(true)
+            setSaveError('')
+            void onSave()
+              .then(() => setSaved(true))
+              .catch(() => setSaveError('Could not save variables. Try again.'))
+              .finally(() => setSaving(false))
+          }}
+        >
+          <Save size={15} /> {saving ? 'Saving…' : saved ? 'Saved' : 'Save variables'}
+        </button>
+      </div>
     </Modal>
   )
 }
@@ -2363,6 +2450,18 @@ function findRequest(workspace: Workspace, requestId: string | null): ApiRequest
   return (
     workspace.collections.flatMap(requestsInCollection).find((request) => request.id === requestId) ?? null
   )
+}
+
+function scriptVariableContext(state: AppState, workspace: Workspace) {
+  const environment = workspace.environments.find((item) => item.id === workspace.activeEnvironmentId)
+  return {
+    hasEnvironment: Boolean(environment),
+    variableScopes: {
+      global: rowsToVariables(state.globalVariables),
+      workspace: rowsToVariables(workspace.variables),
+      environment: rowsToVariables(environment?.variables ?? [])
+    }
+  }
 }
 
 function sameRequestContent(first: ApiRequest, second: ApiRequest): boolean {

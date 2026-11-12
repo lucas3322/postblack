@@ -26,7 +26,7 @@ export function ResponseViewer({
   sending: boolean
   onAskAi?: (prompt: string) => void
 }): React.JSX.Element {
-  const [tab, setTab] = useState<'body' | 'headers' | 'cookies'>('body')
+  const [tab, setTab] = useState<'body' | 'headers' | 'cookies' | 'scripts'>('body')
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
   const [chosenFormat, setChosenFormat] = useState<{ responseId: string; format: ResponseFormat } | null>(
     null
@@ -113,6 +113,18 @@ export function ResponseViewer({
         </div>
         <div className="response-actions">
           <nav className="tabs compact">
+            {Boolean(response.scriptResults?.length) && (
+              <button className={tab === 'scripts' ? 'tab active' : 'tab'} onClick={() => setTab('scripts')}>
+                Scripts{' '}
+                <span>
+                  {
+                    response.scriptResults!.flatMap((result) => result.tests).filter((test) => test.passed)
+                      .length
+                  }
+                  /{response.scriptResults!.flatMap((result) => result.tests).length}
+                </span>
+              </button>
+            )}
             <button className={tab === 'body' ? 'tab active' : 'tab'} onClick={() => setTab('body')}>
               Body
             </button>
@@ -154,6 +166,32 @@ export function ResponseViewer({
           </button>
         </div>
       </header>
+      {tab === 'scripts' && (
+        <div className="script-results">
+          {response.scriptResults?.map((result) => (
+            <section key={result.phase}>
+              <h4>{result.phase === 'preRequest' ? 'Pre-request' : 'Post-response'}</h4>
+              {result.error && (
+                <p className="script-fail" role="alert">
+                  {result.error}
+                </p>
+              )}
+              {result.tests.map((test, index) => (
+                <p key={index} className={test.passed ? 'script-pass' : 'script-fail'}>
+                  {test.passed ? '✓' : '✕'} {test.name}
+                  {test.error ? ` — ${test.error}` : ''}
+                </p>
+              ))}
+              {result.logs.map((log, index) => (
+                <p className="code" key={index}>
+                  {log}
+                </p>
+              ))}
+              {!result.error && !result.tests.length && !result.logs.length && <p>Script completed.</p>}
+            </section>
+          ))}
+        </div>
+      )}
       {tab === 'body' && !response.error && (
         <div className="response-format-toolbar">
           <select

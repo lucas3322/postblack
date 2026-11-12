@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { createInitialState } from './domain'
-import { appStateSchema } from './schemas'
+import { appStateSchema, requestSchema } from './schemas'
 
 describe('state migrations', () => {
+  it('round-trips scripts and results while accepting requests from before scripts existed', () => {
+    const state = createInitialState()
+    const request = state.workspaces[0]!.collections[0]!.requests[0]!
+    expect(requestSchema.parse(request).scripts).toBeUndefined()
+    request.scripts = {
+      preRequest: 'pm.variables.set("id", "42")',
+      postResponse: 'console.log(pm.response.code)'
+    }
+    expect(
+      appStateSchema.parse(JSON.parse(JSON.stringify(state))).workspaces[0]?.collections[0]?.requests[0]
+        ?.scripts
+    ).toEqual(request.scripts)
+  })
   it('adds global variables when loading state created before global scope existed', () => {
     const currentState = createInitialState()
     const { globalVariables: _missingInLegacyState, ...legacyState } = currentState

@@ -10,3 +10,5 @@ dist
 !.env.example
 coverage
 release
+test-results
+playwright-report

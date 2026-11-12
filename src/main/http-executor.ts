@@ -8,11 +8,48 @@ import {
   type ResponseSnapshot
 } from '../shared/domain'
 import { findUnresolvedVariables, resolveVariables } from '../shared/variables'
+import { requestSchema } from '../shared/schemas'
+import { runRequestScript } from './script-runner'
 
 const REQUEST_TIMEOUT_MS = 30_000
 const MAX_UPLOAD_BYTES = 250 * 1024 * 1024
 
 export async function executeHttpRequest(input: ExecuteRequestInput): Promise<ResponseSnapshot> {
+  if (!input.request.scripts?.preRequest.trim() && !input.request.scripts?.postResponse.trim()) {
+    return executeTransport(input)
+  }
+  const pre = await runRequestScript(input, 'preRequest')
+  if (pre.result.error) throw new Error(`Pre-request script: ${pre.result.error}`)
+  const scopes = input.variableScopes ? structuredClone(input.variableScopes) : undefined
+  for (const update of pre.updates) {
+    if (!scopes) break
+    if (update.value === null) delete scopes[update.scope][update.key]
+    else
+      Object.defineProperty(scopes[update.scope], update.key, {
+        value: update.value,
+        writable: true,
+        configurable: true,
+        enumerable: true
+      })
+  }
+  const prepared = {
+    ...input,
+    request: requestSchema.parse(pre.request),
+    variables: pre.variables,
+    variableScopes: scopes
+  }
+  const response = await executeTransport(prepared)
+  const post = await runRequestScript(prepared, 'postResponse', response, pre.localVariables)
+  return {
+    ...response,
+    scriptResults: [pre.result, post.result].filter((result) =>
+      Boolean(input.request.scripts?.[result.phase].trim())
+    ),
+    variableUpdates: [...pre.updates, ...post.updates]
+  }
+}
+
+async function executeTransport(input: ExecuteRequestInput): Promise<ResponseSnapshot> {
   const { request, variables } = input
   const url = buildUrl(request.url, request.params, request.auth, variables)
   const headers = buildHeaders(request.headers, request.auth, variables)

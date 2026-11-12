@@ -52,11 +52,18 @@ export function JsonBodyEditor({
       if (!layer) continue
       layer.scrollTop = textarea.scrollTop
       layer.scrollLeft = textarea.scrollLeft
-    }
-    if (searchHighlightRef.current) {
-      searchHighlightRef.current.style.width = `${textarea.clientWidth}px`
+      layer.style.width = `${textarea.clientWidth}px`
     }
   }
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const observer = new ResizeObserver(() => syncScroll(textarea))
+    observer.observe(textarea)
+    syncScroll(textarea)
+    return () => observer.disconnect()
+  }, [value, highlighted])
 
   const revealActiveMatch = useCallback(() => {
     const textarea = textareaRef.current
@@ -208,17 +215,6 @@ export function JsonBodyEditor({
                         name={segment.name}
                         label={segment.value}
                         detail={variableDetails[segment.name]}
-                        onActivate={() => {
-                          const tokenOffset = tokens
-                            .slice(0, tokenIndex)
-                            .reduce((sum, item) => sum + item.value.length, 0)
-                          const segmentOffset = splitVariableReferences(token.value)
-                            .slice(0, segmentIndex + 1)
-                            .reduce((sum, item) => sum + item.value.length, 0)
-                          const caret = tokenOffset + segmentOffset
-                          textareaRef.current?.focus()
-                          textareaRef.current?.setSelectionRange(caret, caret)
-                        }}
                       />
                     ) : (
                       segment.value
