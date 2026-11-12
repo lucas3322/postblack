@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-11-12
+
+- feat: integrar importacao de colecoes e environments do Postman (42a86d9)
+- Merge main into feat/postman-import and resolve release conflicts (a4309a7)
+- chore(release): v1.1.0 (479c523)
+- feat: importação de coleções e environments do Postman (1249409)
+
+# Changelog
+
 ## 1.2.0 — 2026-11-12
 
 - chore(release): v1.1.0 (49d3797)
